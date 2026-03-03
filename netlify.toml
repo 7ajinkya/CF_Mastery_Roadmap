@@ -1,19 +1,8 @@
 [build]
-  base = "tracker-app"
   publish = "."
 
-# Map study guide requests to the parent folder's files
+# Redirect root to the tracker app
 [[redirects]]
-  from = "/Study_Guides/*"
-  to = "/../Study_Guides/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/Tag_Problems/*"
-  to = "/../Tag_Problems/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*.md"
-  to = "/../:splat.md"
+  from = "/"
+  to = "/tracker-app/index.html"
   status = 200

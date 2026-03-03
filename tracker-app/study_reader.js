@@ -221,10 +221,9 @@ class StudyMaterialReader {
         }
 
         try {
-            // Netlify-compatible: Fetch relative to the project root
-            // If the app is deployed with tracker-app as base, we need to go up one level
-            // but for a clean Netlify deploy, we'll suggest a structure where files are accessible.
-            const url = `../${fileEntry.file}`;
+            // Root-relative pathing works both local (via updated start_server.py) 
+            // and remote (via Netlify redirects).
+            const url = `/${fileEntry.file}`;
             console.log('Fetching file from:', url);
 
             const response = await fetch(url);

@@ -27,64 +27,17 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     """Custom handler that supports serving study files from parent directory."""
     
     def do_GET(self):
-        """Handle GET requests with support for /api/study/ endpoint."""
-        parsed_path = urlparse(self.path)
+        """Handle GET requests with support for root redirects."""
+        # Redirect root to tracker-app
+        if self.path == '/' or self.path == '':
+            self.send_response(302)
+            self.send_header('Location', '/tracker-app/index.html')
+            self.end_headers()
+            return
         
-        # Handle study file API endpoint
-        if parsed_path.path.startswith('/api/study/'):
-            return self.handle_study_file()
-        
-        # Fall back to default file serving
+        # Fall back to default file serving (from root)
         return super().do_GET()
     
-    def handle_study_file(self):
-        """Serve markdown files from parent CF_Mastery_Roadmap directory."""
-        # Extract filename from query parameter
-        parsed_path = urlparse(self.path)
-        query_params = parse_qs(parsed_path.query)
-        filename = query_params.get('file', [None])[0]
-        
-        if not filename:
-            self.send_error(400, "Missing 'file' parameter")
-            return
-        
-        # Security: prevent directory traversal
-        if '..' in filename or filename.startswith('/'):
-            self.send_error(403, "Invalid file path")
-            return
-        
-        # Build path to file in parent directory
-        tracker_app_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(tracker_app_dir)
-        file_path = os.path.join(parent_dir, filename)
-        
-        # Normalize and verify path is within parent directory
-        file_path = os.path.normpath(file_path)
-        parent_dir = os.path.normpath(parent_dir)
-        
-        if not os.path.abspath(file_path).startswith(os.path.abspath(parent_dir)):
-            self.send_error(403, "Access denied")
-            return
-        
-        # Check if file exists
-        if not os.path.isfile(file_path):
-            self.send_error(404, f"File not found: {filename}")
-            return
-        
-        try:
-            # Read file content
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Send response
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain; charset=utf-8')
-            self.send_header('Content-length', len(content.encode('utf-8')))
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(content.encode('utf-8'))
-        except Exception as e:
-            self.send_error(500, f"Error reading file: {str(e)}")
 
 
 def try_listen(host, port):
@@ -126,8 +79,9 @@ def main():
         print(f"No free port found in range {start}-{args.end_port}", file=sys.stderr)
         sys.exit(1)
 
-    # serve from the tracker-app folder
-    os.chdir(os.path.dirname(__file__) or ".")
+    # serve from the root directory (one level above tracker-app)
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(root_dir)
 
     try:
         with httpd:
