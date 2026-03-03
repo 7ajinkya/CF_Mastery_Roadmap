@@ -1512,6 +1512,19 @@ function importData() {
 
 // ===== Init =====
 window.addEventListener('DOMContentLoaded', () => {
+    // Inject styles for internal .md links rendered inside study material content
+    const style = document.createElement('style');
+    style.textContent = `
+        .md-internal-link { cursor: pointer; }
+        .md-unknown-link {
+            color: #888;
+            text-decoration: underline dotted;
+            cursor: not-allowed;
+            font-style: italic;
+        }
+    `;
+    document.head.appendChild(style);
+
     const saved = localStorage.getItem('cf_handle');
     if (saved) {
         document.getElementById('handle-input').value = saved;
@@ -2766,8 +2779,35 @@ function simpleMarkdownToHTML(markdown) {
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-    // 5. Links
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    // 5. Links — intercept .md links so they open in the reader instead of raw in browser
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, href) => {
+        if (href.match(/\.md$/i)) {
+            // Strip any leading path noise (e.g. "../", "./", "tracker-app/") to get bare filename
+            const bare = href.replace(/^.*[\\/]/, '');
+            // Search STUDY_MATERIAL_CATALOG for a file whose path ends with this filename
+            let fileId = null;
+            if (window.STUDY_MATERIAL_CATALOG) {
+                outer: for (const cat of window.STUDY_MATERIAL_CATALOG) {
+                    for (const f of cat.files) {
+                        const catalogBase = f.file.replace(/^.*[\\/]/, '');
+                        if (catalogBase === bare || f.file === href) {
+                            fileId = f.id;
+                            break outer;
+                        }
+                    }
+                }
+            }
+            if (fileId) {
+                // Route through the reader — no raw browser navigation
+                return '<a href="#" class="quick-file-link md-internal-link" onclick="loadStudyFile(\'' + fileId + '\'); return false;">' + text + '</a>';
+            } else {
+                // .md file not in catalog — show as disabled span to prevent raw display
+                return '<span class="md-unknown-link" title="File not in library: ' + href + '">' + text + '</span>';
+            }
+        }
+        // Normal external link
+        return '<a href="' + href + '" target="_blank" rel="noopener">' + text + '</a>';
+    });
 
     // 6. Lists (- and * bullets)
     html = html.replace(/^[\-\*] (.*$)/gm, '<li>$1</li>');
