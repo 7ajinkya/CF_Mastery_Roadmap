@@ -1,0 +1,508 @@
+<!-- Study Material Reader Tab -->
+<div id="tab-study-material" class="tab-content">
+    <div class="study-reader-container">
+        
+        <!-- Header -->
+        <div class="study-header">
+            <h1>📚 Study Material Library</h1>
+            <p>Access all your competitive programming resources in one place. Read, search, and bookmark your favorite guides.</p>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="study-nav">
+            <button class="study-nav-btn active" data-view="browse" onclick="switchStudyView('browse')">
+                <span>📁</span> Browse All
+            </button>
+            <button class="study-nav-btn" data-view="recent" onclick="switchStudyView('recent')">
+                <span>🕒</span> Recent
+            </button>
+            <button class="study-nav-btn" data-view="bookmarks" onclick="switchStudyView('bookmarks')">
+                <span>⭐</span> Bookmarks
+            </button>
+            <button class="study-nav-btn" data-view="search" onclick="switchStudyView('search')">
+                <span>🔍</span> Search
+            </button>
+        </div>
+        
+        <!-- Browse View -->
+        <div id="browse-view" class="study-view active">
+            <!-- Quick Access Cards -->
+            <div class="quick-access">
+                <div class="quick-card">
+                    <h3>🎯 Getting Started</h3>
+                    <ul>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('overview')">
+                                <span>🏆</span> CF Roadmap Overview
+                            </a>
+                            <span class="file-meta">Core</span>
+                        </li>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('enhancement')">
+                                <span>🚀</span> Enhancement Summary
+                            </a>
+                            <span class="file-meta">Guide</span>
+                        </li>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('confidence')">
+                                <span>💪</span> Confidence Building
+                            </a>
+                            <span class="file-meta">Mindset</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="quick-card">
+                    <h3>🏷️ Top Tags</h3>
+                    <ul>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('math')">
+                                <span>🧮</span> Math Problems (25)
+                            </a>
+                            <span class="file-meta">800-1300</span>
+                        </li>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('implementation')">
+                                <span>💻</span> Implementation (25)
+                            </a>
+                            <span class="file-meta">800-1200</span>
+                        </li>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('greedy')">
+                                <span>💰</span> Greedy (20)
+                            </a>
+                            <span class="file-meta">900-1400</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="quick-card">
+                    <h3>📘 Study Guides</h3>
+                    <ul>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('guide1')">
+                                <span>📘</span> Math for CP
+                            </a>
+                            <span class="file-meta">Lesson 1</span>
+                        </li>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('guide3')">
+                                <span>🔄</span> Sorting & Greedy
+                            </a>
+                            <span class="file-meta">Lesson 3</span>
+                        </li>
+                        <li>
+                            <a href="#" class="quick-file-link" onclick="loadStudyFile('guide6')">
+                                <span>🔍</span> Binary Search
+                            </a>
+                            <span class="file-meta">Lesson 6</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Category Grid -->
+            <h2 style="color: #2c3e50; margin: 30px 0 20px 0; font-size: 28px;">📚 All Categories</h2>
+            <div class="category-grid" id="category-grid">
+                <!-- Categories will be loaded dynamically -->
+            </div>
+        </div>
+        
+        <!-- Recent View -->
+        <div id="recent-view" class="study-view">
+            <div class="quick-access">
+                <div class="quick-card">
+                    <h3>🕒 Recently Accessed</h3>
+                    <div id="recent-files-list">
+                        <div class="loading-container">
+                            <div class="loading-spinner"></div>
+                            <span>Loading recent files...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bookmarks View -->
+        <div id="bookmarks-view" class="study-view">
+            <div class="quick-access">
+                <div class="quick-card">
+                    <h3>⭐ Your Bookmarks</h3>
+                    <div id="bookmarked-files-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">⭐</div>
+                            <h3 class="empty-title">No Bookmarks Yet</h3>
+                            <p class="empty-message">Start reading materials and bookmark your favorites to see them here!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Search View -->
+        <div id="search-view" class="study-view">
+            <div class="search-section">
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">🔍 Search Study Materials</h2>
+                <div class="search-box">
+                    <input type="text" id="search-input" class="search-input" placeholder="Search for topics, concepts, or keywords..." />
+                    <button class="search-btn" onclick="performSearch()">
+                        <span>🔍</span> Search
+                    </button>
+                </div>
+                <div id="search-results" class="search-results" style="display: none;">
+                    <h3>Search Results</h3>
+                    <div id="search-results-list"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reader View -->
+        <div id="reader-view" class="study-view">
+            <div class="reader-container">
+                <div class="reader-header">
+                    <h2 class="reader-title" id="reader-title">
+                        <span id="reader-icon">📚</span>
+                        <span id="reader-file-title">Loading...</span>
+                    </h2>
+                    <div class="reader-actions">
+                        <button class="reader-btn btn-bookmark" id="bookmark-btn" onclick="toggleBookmark()">
+                            <span>⭐</span> Bookmark
+                        </button>
+                        <button class="reader-btn btn-back" onclick="closeReader()">
+                            <span>←</span> Back to Library
+                        </button>
+                    </div>
+                </div>
+                <div class="reader-content" id="reader-content">
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <span>Loading content...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+// Study Material Reader UI Functions
+
+let currentView = 'browse';
+let studyReader = null;
+let currentFileId = null;
+let studyMaterialInitialized = false;
+
+function initializeStudyMaterial() {
+    // Prevent multiple initializations
+    if (studyMaterialInitialized && studyReader) {
+        console.log('Study material already initialized');
+        return;
+    }
+    
+    try {
+        // Initialize the reader system
+        studyReader = new StudyMaterialReader();
+        studyReader.loadHistory();
+        
+        // Render initial views
+        renderCategoryGrid();
+        renderRecentFiles();
+        renderBookmarkedFiles();
+        
+        // Set up search handler
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        }
+        
+        studyMaterialInitialized = true;
+        console.log('Study material initialized successfully');
+    } catch (e) {
+        console.error('Failed to initialize study material:', e);
+    }
+}
+
+function switchStudyView(view) {
+    // Update active tab
+    document.querySelectorAll('.study-nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-view="${view}"]`).classList.add('active');
+    
+    // Show selected view
+    document.querySelectorAll('.study-view').forEach(viewEl => {
+        viewEl.classList.remove('active');
+    });
+    document.getElementById(`${view}-view`).classList.add('active');
+    
+    currentView = view;
+    
+    // Refresh dynamic content
+    if (view === 'recent') {
+        renderRecentFiles();
+    } else if (view === 'bookmarks') {
+        renderBookmarkedFiles();
+    }
+}
+
+function renderCategoryGrid() {
+    const container = document.getElementById('category-grid');
+    container.innerHTML = '';
+    
+    STUDY_MATERIAL_CATALOG.forEach(category => {
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        
+        let filesHtml = '';
+        category.files.forEach(file => {
+            filesHtml += `
+                <li>
+                    <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                        <span>${file.title}</span>
+                    </a>
+                    <span class="file-meta">${file.type}</span>
+                </li>
+            `;
+        });
+        
+        card.innerHTML = `
+            <div class="category-header">
+                <h2>${category.icon} ${category.category}</h2>
+            </div>
+            <div class="category-content">
+                <ul>${filesHtml}</ul>
+            </div>
+        `;
+        
+        container.appendChild(card);
+    });
+}
+
+function renderRecentFiles() {
+    const recentFiles = studyReader.getRecentFiles(10);
+    const container = document.getElementById('recent-files-list');
+    
+    if (recentFiles.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🕒</div>
+                <h3 class="empty-title">No Recent Files</h3>
+                <p class="empty-message">Start exploring the library to see your recently accessed materials here!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<ul>';
+    recentFiles.forEach(file => {
+        html += `
+            <li>
+                <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                    <span>${file.title}</span>
+                </a>
+                <span class="file-meta">${file.type}</span>
+            </li>
+        `;
+    });
+    html += '</ul>';
+    
+    container.innerHTML = html;
+}
+
+function renderBookmarkedFiles() {
+    const bookmarkedFiles = studyReader.getBookmarkedFiles();
+    const container = document.getElementById('bookmarked-files-list');
+    
+    if (bookmarkedFiles.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⭐</div>
+                <h3 class="empty-title">No Bookmarks Yet</h3>
+                <p class="empty-message">Start reading materials and bookmark your favorites to see them here!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<ul>';
+    bookmarkedFiles.forEach(file => {
+        html += `
+            <li>
+                <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                    <span>${file.title}</span>
+                </a>
+                <span class="file-meta">${file.type}</span>
+            </li>
+        `;
+    });
+    html += '</ul>';
+    
+    container.innerHTML = html;
+}
+
+async function loadStudyFile(fileId) {
+    console.log('Loading study file:', fileId);
+    
+    // Show reader view
+    document.querySelectorAll('.study-view').forEach(view => {
+        view.classList.remove('active');
+    });
+    document.getElementById('reader-view').classList.add('active');
+    
+    // Show loading state
+    document.getElementById('reader-content').innerHTML = `
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <span>Loading content...</span>
+        </div>
+    `;
+    
+    // Load the file
+    try {
+        const fileData = await studyReader.loadFile(fileId);
+        currentFileId = fileId;
+        
+        if (fileData) {
+            console.log('File loaded successfully:', fileId);
+            
+            // Update header
+            document.getElementById('reader-icon').textContent = fileData.icon || '📚';
+            document.getElementById('reader-file-title').textContent = fileData.title;
+            
+            // Update bookmark button state
+            const bookmarkBtn = document.getElementById('bookmark-btn');
+            if (studyReader.bookmarks.has(fileId)) {
+                bookmarkBtn.classList.add('active');
+                bookmarkBtn.innerHTML = '<span>⭐</span> Bookmarked';
+            } else {
+                bookmarkBtn.classList.remove('active');
+                bookmarkBtn.innerHTML = '<span>⭐</span> Bookmark';
+            }
+            
+            // Display content
+            document.getElementById('reader-content').innerHTML = fileData.html;
+        } else {
+            console.error('Failed to load file - fileData is null:', fileId);
+            document.getElementById('reader-content').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">❌</div>
+                    <h3 class="empty-title">Failed to Load</h3>
+                    <p class="empty-message">Could not load the requested file. Please try again later.</p>
+                    <button class="search-btn" onclick="closeReader()" style="margin-top: 20px;">
+                        <span>←</span> Back to Library
+                    </button>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error('Error loading file:', fileId, e);
+        document.getElementById('reader-content').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">❌</div>
+                <h3 class="empty-title">Error Loading File</h3>
+                <p class="empty-message">${e.message || 'An error occurred while loading the file.'}</p>
+                <button class="search-btn" onclick="closeReader()" style="margin-top: 20px;">
+                    <span>←</span> Back to Library
+                </button>
+            </div>
+        `;
+    }
+}
+
+function closeReader() {
+    // Show the previous view
+    document.getElementById('reader-view').classList.remove('active');
+    document.getElementById(`${currentView}-view`).classList.add('active');
+    
+    // Clear current file
+    currentFileId = null;
+}
+
+function toggleBookmark() {
+    if (!currentFileId) return;
+    
+    const isBookmarked = studyReader.toggleBookmark(currentFileId);
+    const bookmarkBtn = document.getElementById('bookmark-btn');
+    
+    if (isBookmarked) {
+        bookmarkBtn.classList.add('active');
+        bookmarkBtn.innerHTML = '<span>⭐</span> Bookmarked';
+        showNotification('Added to bookmarks!', 'success');
+    } else {
+        bookmarkBtn.classList.remove('active');
+        bookmarkBtn.innerHTML = '<span>⭐</span> Bookmark';
+        showNotification('Removed from bookmarks', 'info');
+    }
+    
+    // Refresh bookmarks view if needed
+    if (currentView === 'bookmarks') {
+        renderBookmarkedFiles();
+    }
+}
+
+function performSearch() {
+    const query = document.getElementById('search-input').value.trim();
+    if (!query) return;
+    
+    const results = studyReader.search(query);
+    const container = document.getElementById('search-results');
+    const listContainer = document.getElementById('search-results-list');
+    
+    if (results.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3 class="empty-title">No Results Found</h3>
+                <p class="empty-message">Try different keywords or browse the categories above.</p>
+            </div>
+        `;
+    } else {
+        let html = '<ul>';
+        results.forEach(file => {
+            html += `
+                <li>
+                    <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                        <span>${file.categoryIcon} ${file.title}</span>
+                    </a>
+                    <span class="file-meta">${file.category}</span>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        listContainer.innerHTML = html;
+    }
+    
+    container.style.display = 'block';
+}
+
+// Initialize when tab is shown
+document.addEventListener('DOMContentLoaded', () => {
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const tab = document.getElementById('tab-study-material');
+                if (tab && tab.classList.contains('active')) {
+                    initializeStudyMaterial();
+                }
+            }
+        });
+    });
+    
+    const tab = document.getElementById('tab-study-material');
+    if (tab) {
+        observer.observe(tab, { attributes: true });
+    }
+});
+
+// Export functions
+window.switchStudyView = switchStudyView;
+window.loadStudyFile = loadStudyFile;
+window.closeReader = closeReader;
+window.toggleBookmark = toggleBookmark;
+window.performSearch = performSearch;
+</script>

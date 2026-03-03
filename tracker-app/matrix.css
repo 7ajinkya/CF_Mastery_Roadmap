@@ -1,0 +1,450 @@
+/* ==========================================
+   Mastery Matrix Styles
+   ========================================== */
+
+/* Container */
+.matrix-section {
+    padding: 0 4px;
+}
+
+.matrix-section .section-title {
+    margin-bottom: 8px;
+}
+
+.matrix-section .section-desc {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+/* Stats row */
+.matrix-stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.matrix-stat-card {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    transition: transform .15s, box-shadow .15s;
+}
+
+.matrix-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+}
+
+.matrix-stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00e676, #00bfa5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.matrix-stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+/* Legend */
+.matrix-legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.matrix-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.matrix-legend-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, .1);
+}
+
+/* Table wrapper — horizontal scroll on narrow screens */
+.matrix-table-wrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, .15) transparent;
+}
+
+.matrix-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.matrix-table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.matrix-table-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .15);
+    border-radius: 4px;
+}
+
+/* Table */
+.matrix-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    min-width: 950px;
+}
+
+.matrix-table th,
+.matrix-table td {
+    padding: 0;
+}
+
+/* First column (tag names) gets a fixed wider width */
+.matrix-table th:first-child,
+.matrix-table td:first-child {
+    width: 155px;
+    min-width: 155px;
+}
+
+/* Group header row */
+.matrix-group-header th {
+    padding: 8px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.matrix-group-header th:first-child {
+    background: var(--bg-card);
+    position: sticky;
+    left: 0;
+    z-index: 3;
+}
+
+.matrix-group-header .group-newbie {
+    color: #43a047;
+}
+
+.matrix-group-header .group-pupil {
+    color: #03a9f4;
+}
+
+.matrix-group-header .group-specialist {
+    color: #aa00ff;
+}
+
+.matrix-group-header .group-expert {
+    color: #ff8f00;
+}
+
+.matrix-group-header .group-cm {
+    color: #ff3d00;
+}
+
+/* Rating header row */
+.matrix-rating-header th {
+    padding: 6px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.matrix-rating-header th:first-child {
+    background: var(--bg-card);
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    text-align: left;
+    padding-left: 12px;
+    font-weight: 700;
+}
+
+/* Tag name cell (sticky first column) */
+.matrix-tag-cell {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg-card);
+    padding: 10px 10px !important;
+    font-weight: 600;
+    font-size: 12px;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+
+/* Data cells */
+.matrix-cell {
+    padding: 6px 4px !important;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all .15s;
+    position: relative;
+}
+
+.matrix-cell:hover .matrix-cell-inner {
+    outline: 2px solid rgba(0, 230, 118, .5);
+    outline-offset: -2px;
+    background: rgba(0, 230, 118, .08);
+}
+
+/* Cell inner (the colored block) */
+.matrix-cell-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    padding: 6px 2px;
+    min-height: 44px;
+    transition: background .2s, box-shadow .2s;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.matrix-cell-inner .cell-count {
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.matrix-cell-inner .cell-goal {
+    font-size: 9px;
+    opacity: .7;
+    font-weight: 400;
+}
+
+/* Heat-map levels */
+.heat-empty .matrix-cell-inner {
+    background: rgba(255, 255, 255, .03);
+    color: var(--text-muted);
+}
+
+.heat-none .matrix-cell-inner {
+    background: rgba(255, 255, 255, .06);
+    color: var(--text-secondary);
+}
+
+.heat-low .matrix-cell-inner {
+    background: rgba(255, 152, 0, .18);
+    color: #ffb74d;
+    box-shadow: inset 0 0 0 1px rgba(255, 152, 0, .25);
+}
+
+.heat-mid .matrix-cell-inner {
+    background: rgba(255, 193, 7, .22);
+    color: #fdd835;
+    box-shadow: inset 0 0 0 1px rgba(255, 193, 7, .3);
+}
+
+.heat-high .matrix-cell-inner {
+    background: rgba(76, 175, 80, .22);
+    color: #66bb6a;
+    box-shadow: inset 0 0 0 1px rgba(76, 175, 80, .3);
+}
+
+.heat-complete .matrix-cell-inner {
+    background: linear-gradient(135deg, rgba(0, 230, 118, .25), rgba(0, 191, 165, .25));
+    color: #00e676;
+    box-shadow: inset 0 0 0 1px rgba(0, 230, 118, .4), 0 0 8px rgba(0, 230, 118, .15);
+}
+
+/* Detail panel */
+.matrix-detail-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-top: 20px;
+    padding: 0;
+    overflow: hidden;
+    animation: slideUp .25s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.matrix-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, .03);
+}
+
+.matrix-detail-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.matrix-detail-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background .15s;
+}
+
+.matrix-detail-close:hover {
+    background: rgba(255, 255, 255, .08);
+}
+
+.matrix-detail-body {
+    padding: 16px 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.matrix-prob-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .05);
+    transition: background .15s;
+}
+
+.matrix-prob-item:hover {
+    background: rgba(255, 255, 255, .07);
+}
+
+.matrix-prob-item a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.matrix-prob-item a:hover {
+    text-decoration: underline;
+}
+
+.matrix-prob-concept {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 8px;
+}
+
+.matrix-prob-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.matrix-prob-status.solved {
+    background: rgba(0, 230, 118, .15);
+    color: #00e676;
+}
+
+.matrix-prob-status.unsolved {
+    background: rgba(255, 255, 255, .06);
+    color: var(--text-secondary);
+}
+
+.matrix-detail-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Calendar matrix practice section */
+.cal-matrix-section {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255, 255, 255, .12);
+}
+
+.cal-matrix-section h5 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.cal-matrix-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    background: rgba(139, 92, 246, .08);
+    border: 1px solid rgba(139, 92, 246, .15);
+}
+
+.cal-matrix-item a {
+    color: #a78bfa;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.cal-matrix-item a:hover {
+    text-decoration: underline;
+}
+
+.cal-matrix-item .cal-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .matrix-stats-row {
+        flex-direction: column;
+    }
+
+    .matrix-stat-card {
+        min-width: 100%;
+    }
+
+    .matrix-table {
+        min-width: 650px;
+    }
+}

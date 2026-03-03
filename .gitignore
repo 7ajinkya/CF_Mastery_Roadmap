@@ -1,0 +1,18 @@
+# Tracker Data
+tracker-app/user_data.json
+tracker-app/.server_port
+tracker-app/temp_catalog.js
+tracker-app/temp_catalog copy.js
+tracker-app/study_data copy.js
+
+# Backups
+**/*.backup
+tracker-app/backup/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Large JS files (if they are generated/large data)
+# tracker-app/study_data.js
+# tracker-app/matrix_data.js

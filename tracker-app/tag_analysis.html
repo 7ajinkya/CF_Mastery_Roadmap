@@ -1,0 +1,395 @@
+<!-- Tag Analysis Tab Template -->
+<div id="tab-tag-analysis" class="tab-content">
+    <div class="tag-analysis-container">
+        
+        <!-- Confidence Meter Section -->
+        <div class="confidence-section">
+            <div class="confidence-header">
+                <h2 class="confidence-title">
+                    <span>🎯</span>
+                    Confidence Meter
+                </h2>
+                <div class="confidence-score-display" id="confidence-display">
+                    —/100
+                </div>
+            </div>
+            
+            <div class="confidence-meter">
+                <div class="confidence-fill" id="confidence-fill" style="width: 0%"></div>
+            </div>
+            
+            <div class="confidence-trend" id="confidence-trend">
+                <span>📊</span>
+                <span>Calibrating your CP confidence...</span>
+            </div>
+        </div>
+        
+        <!-- Tag Mastery Grid -->
+        <div class="tag-grid" id="tag-grid">
+            <!-- Tag cards will be dynamically generated here -->
+            <div class="tag-loading" id="tag-loading">
+                <div class="loading-spinner"></div>
+                <span>Loading tag analysis...</span>
+            </div>
+        </div>
+        
+        <!-- Progress Visualization -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <h2 class="progress-title">
+                    <span>📈</span>
+                    Skill Progress Visualization
+                </h2>
+                <button class="tag-refresh-btn" onclick="refreshTagProgress()">
+                    <span>🔄</span>
+                    Refresh
+                </button>
+            </div>
+            
+            <div class="progress-charts">
+                <div class="skill-radar" id="skill-radar">
+                    <div>
+                        <div style="font-size: 20px; margin-bottom: 10px;">📊 Skill Radar Chart</div>
+                        <div style="color: #95a5a6;">(Interactive visualization will appear here)</div>
+                        <div style="margin-top: 20px; font-size: 14px;">
+                            X-axis: Confidence Level<br>
+                            Y-axis: Problem Count<br>
+                            Each point: A different tag
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mastery-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">🎯 Strong Tags</span>
+                        <span class="summary-value" id="strong-tags-count">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">⚠️ Weak Tags</span>
+                        <span class="summary-value" id="weak-tags-count">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">📊 Avg Confidence</span>
+                        <span class="summary-value" id="avg-confidence">0%</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">🔥 Current Streak</span>
+                        <span class="summary-value" id="tag-streak">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recommendations Section -->
+        <div class="recommendations-section">
+            <div class="recommendations-header">
+                <h2 class="recommendations-title">
+                    <span>💡</span>
+                    Personalized Recommendations
+                </h2>
+            </div>
+            
+            <div class="recommendations-list" id="recommendations-list">
+                <div class="recommendation-card">
+                    <h3 class="recommendation-title">🎯 Focus on Weak Areas</h3>
+                    <p class="recommendation-desc">Based on your current performance, we recommend strengthening your foundational tags first.</p>
+                    <button class="recommendation-action" onclick="startWeakTagDrill()">
+                        Practice Weak Tags
+                    </button>
+                </div>
+                
+                <div class="recommendation-card">
+                    <h3 class="recommendation-title">📚 Study Plan</h3>
+                    <p class="recommendation-desc">Review concepts you haven't practiced in a while to maintain your skills.</p>
+                    <button class="recommendation-action" onclick="openStudyReview()">
+                        Review Concepts
+                    </button>
+                </div>
+                
+                <div class="recommendation-card">
+                    <h3 class="recommendation-title">⚔️ Boss Challenge</h3>
+                    <p class="recommendation-desc">Take on a problem 200+ rating above your comfort zone to boost confidence.</p>
+                    <button class="recommendation-action" onclick="startBossFight()">
+                        Start Boss Fight
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Empty State (shown when no data) -->
+        <div class="empty-state" id="tag-empty-state" style="display: none;">
+            <div class="empty-icon">📊</div>
+            <h3 class="empty-title">No Tag Data Yet</h3>
+            <p class="empty-message">
+                Start solving problems and we'll analyze your performance by tag to help you identify strengths and areas for improvement.
+            </p>
+            <button class="empty-action" onclick="showTab('practice', document.querySelector('[onclick*=\'practice\']'))">
+                Start Practicing
+            </button>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Tag Detail Modal -->
+<div id="tag-detail-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-tag-title">Tag Details</h2>
+            <span class="close" onclick="closeTagModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="modal-tag-content">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Tag Analysis UI Functions
+
+function initializeTagAnalysis() {
+    // Initialize tag tracking systems
+    window.tagTracker = new TagMasteryTracker();
+    window.confidenceTracker = new ConfidenceTracker();
+    window.spacedRepetition = new SpacedRepetitionSystem();
+    
+    // Load existing data
+    loadTagData();
+    
+    // Render initial view
+    renderTagAnalysis();
+}
+
+function loadTagData() {
+    // Load from localStorage or API
+    const savedData = localStorage.getItem('tagProgress');
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            window.tagTracker.importProgress(data);
+        } catch (e) {
+            console.warn('Failed to load tag data:', e);
+        }
+    }
+}
+
+function renderTagAnalysis() {
+    // Update confidence meter
+    updateConfidenceDisplay();
+    
+    // Render tag grid
+    renderTagGrid();
+    
+    // Update progress visualization
+    updateProgressSummary();
+    
+    // Show/hide empty state
+    const hasData = Object.values(window.tagTracker.tagProgress).some(t => t.solvedCount > 0);
+    document.getElementById('tag-empty-state').style.display = hasData ? 'none' : 'block';
+    document.getElementById('tag-grid').style.display = hasData ? 'grid' : 'none';
+}
+
+function updateConfidenceDisplay() {
+    const confidence = window.confidenceTracker.currentConfidence;
+    const trend = window.confidenceTracker.getConfidenceTrend();
+    
+    document.getElementById('confidence-display').textContent = `${Math.round(confidence)}/100`;
+    document.getElementById('confidence-fill').style.width = `${confidence}%`;
+    
+    const trendElement = document.getElementById('confidence-trend');
+    if (trend > 0) {
+        trendElement.innerHTML = `<span class="trend-up">📈 +${trend} points</span> <span>Improving!</span>`;
+    } else if (trend < 0) {
+        trendElement.innerHTML = `<span class="trend-down">📉 ${trend} points</span> <span>Keep practicing!</span>`;
+    } else {
+        trendElement.innerHTML = `<span class="trend-neutral">📊</span> <span>Steady progress</span>`;
+    }
+}
+
+function renderTagGrid() {
+    const container = document.getElementById('tag-grid');
+    const tags = window.tagTracker.getSortedTags('confidence');
+    
+    // Clear loading state
+    container.innerHTML = '';
+    
+    tags.forEach(tagData => {
+        const card = createTagCard(tagData);
+        container.appendChild(card);
+    });
+}
+
+function createTagCard(tagData) {
+    const card = document.createElement('div');
+    card.className = `tag-card ${tagData.confidence < 50 ? 'weak-tag' : tagData.confidence > 80 ? 'strong-tag' : ''}`;
+    
+    const progressPercent = tagData.totalProblems > 0 ? 
+        Math.round((tagData.solvedCount / tagData.totalProblems) * 100) : 0;
+    
+    card.innerHTML = `
+        <div class="tag-card-header">
+            <div class="tag-name">
+                <span class="tag-icon">${tagData.icon}</span>
+                ${tagData.name}
+            </div>
+            <div class="tag-mastery mastery-${tagData.masteryLevel.toLowerCase()}">
+                ${tagData.masteryLevel}
+            </div>
+        </div>
+        
+        <div class="tag-stats">
+            <div class="stat-item">
+                <div class="stat-value">${tagData.solvedCount}</div>
+                <div class="stat-label">Solved</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${Math.round(tagData.confidence)}%</div>
+                <div class="stat-label">Confidence</div>
+            </div>
+        </div>
+        
+        <div class="tag-progress-bar">
+            <div class="tag-progress-fill" style="width: ${progressPercent}%"></div>
+        </div>
+        
+        <div style="font-size: 12px; color: #7f8c8d; margin: 10px 0;">
+            Avg Difficulty: ${Math.round(tagData.avgDifficulty) || '—'}
+        </div>
+        
+        <div class="tag-actions">
+            <button class="tag-btn practice-btn" onclick="practiceTag('${tagData.tag}')">
+                <span>📝</span>
+                Practice
+            </button>
+            <button class="tag-btn review-btn" onclick="reviewTag('${tagData.tag}')">
+                <span>📚</span>
+                Review
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
+function updateProgressSummary() {
+    const weakTags = window.tagTracker.getWeakTags();
+    const strongTags = Object.values(window.tagTracker.tagProgress)
+        .filter(t => t.confidence >= 80);
+    
+    const avgConfidence = Object.values(window.tagTracker.tagProgress)
+        .reduce((sum, t) => sum + t.confidence, 0) / 
+        Object.keys(window.tagTracker.tagProgress).length || 0;
+    
+    document.getElementById('weak-tags-count').textContent = weakTags.length;
+    document.getElementById('strong-tags-count').textContent = strongTags.length;
+    document.getElementById('avg-confidence').textContent = `${Math.round(avgConfidence)}%`;
+    document.getElementById('tag-streak').textContent = window.state.streak || 0;
+}
+
+// Action Functions
+function practiceTag(tag) {
+    // Show recommended problems for this tag
+    const problems = window.tagTracker.getRecommendedProblems(tag, 5);
+    showTagProblemsModal(tag, problems);
+}
+
+function reviewTag(tag) {
+    // Schedule concept review
+    window.spacedRepetition.scheduleConcept(`tag_${tag}`, 'medium');
+    showNotification(`Review scheduled for ${TAG_DEFINITIONS[tag].name}`, 'success');
+}
+
+function refreshTagProgress() {
+    // Simulate progress update
+    showNotification('Tag progress refreshed!', 'info');
+    renderTagAnalysis();
+}
+
+function startWeakTagDrill() {
+    const weakTags = window.tagTracker.getWeakTags();
+    if (weakTags.length === 0) {
+        showNotification('No weak tags found! Great job!', 'success');
+        return;
+    }
+    
+    const weakest = weakTags[0];
+    practiceTag(weakest.tag);
+}
+
+function openStudyReview() {
+    showTab('study', document.querySelector('[onclick*="study"]'));
+    showNotification('Check the Study Guides tab for review materials', 'info');
+}
+
+function startBossFight() {
+    // This would integrate with the existing boss fight system
+    showNotification('Boss fight system coming soon!', 'info');
+}
+
+function showTagProblemsModal(tag, problems) {
+    const modal = document.getElementById('tag-detail-modal');
+    const title = document.getElementById('modal-tag-title');
+    const content = document.getElementById('modal-tag-content');
+    
+    title.textContent = `${TAG_DEFINITIONS[tag].icon} ${TAG_DEFINITIONS[tag].name} Practice`;
+    
+    content.innerHTML = `
+        <div style="margin-bottom: 20px;">
+            <h3>Recommended Problems</h3>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                ${problems.map(p => `
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${p.title}</strong>
+                            <div style="font-size: 14px; color: #666;">Rating: ${p.rating}</div>
+                        </div>
+                        <button onclick="openProblem('${p.id}')" style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Solve
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        
+        <div>
+            <h3>Study Resources</h3>
+            <button onclick="openStudyGuide('${tag}')" style="padding: 12px 20px; background: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer; margin-right: 10px;">
+               📚 Guide
+            </button>
+            <button onclick="scheduleReview('${tag}')" style="padding: 12px 20px; background: #9b59b6; color: white; border: none; border-radius: 8px; cursor: pointer;">
+               📅 Review
+            </button>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+function closeTagModal() {
+    document.getElementById('tag-detail-modal').style.display = 'none';
+}
+
+// Initialize when tab is shown
+document.addEventListener('DOMContentLoaded', () => {
+    // Add event listener for tab switching
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const tab = document.getElementById('tab-tag-analysis');
+                if (tab && tab.classList.contains('active')) {
+                    initializeTagAnalysis();
+                }
+            }
+        });
+    });
+    
+    const tab = document.getElementById('tab-tag-analysis');
+    if (tab) {
+        observer.observe(tab, { attributes: true });
+    }
+});
+
+// Export for global access
+window.renderTagAnalysis = renderTagAnalysis;
+window.refreshTagProgress = refreshTagProgress;
+</script>
