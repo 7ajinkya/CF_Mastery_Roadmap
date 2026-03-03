@@ -5,4 +5,5 @@
 [[redirects]]
   from = "/"
   to = "/tracker-app/index.html"
-  status = 200
+  status = 301
+  force = true
