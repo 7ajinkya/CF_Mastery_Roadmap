@@ -448,3 +448,182 @@
         min-width: 650px;
     }
 }
+
+/* ==========================================
+   Focus Zone Feature Styles
+   ========================================== */
+
+/* --- Selector Bar --- */
+.focus-zone-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.focus-zone-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.focus-zone-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    letter-spacing: .3px;
+}
+
+#focus-zone-select {
+    appearance: none;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 32px 6px 12px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+#focus-zone-select:focus {
+    outline: none;
+    border-color: rgba(0, 230, 118, .5);
+    box-shadow: 0 0 0 3px rgba(0, 230, 118, .12);
+}
+
+#focus-zone-select option {
+    background: #1e1e2e;
+    color: #fff;
+}
+
+/* --- Zone Stats Row --- */
+.focus-zone-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+    animation: fzFadeIn .3s ease;
+}
+
+@keyframes fzFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.fz-stats-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .3px;
+    white-space: nowrap;
+}
+
+.fz-stats-pill {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 20px;
+    padding: 3px 10px;
+    white-space: nowrap;
+}
+
+.fz-pct {
+    font-size: 13px;
+    font-weight: 800;
+    background: transparent;
+    border: none;
+    padding: 0 4px;
+}
+
+.fz-progress-track {
+    flex: 1;
+    min-width: 80px;
+    max-width: 160px;
+    height: 6px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.fz-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width .5s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* --- Cell States inside / outside zone --- */
+
+/* Cells inside the zone: subtle inner glow ring */
+.fz-in .matrix-cell-inner {
+    outline: 1px solid rgba(255, 255, 255, .1);
+    outline-offset: -1px;
+}
+
+/* Cells outside the zone: heavily dimmed */
+.fz-out {
+    pointer-events: none;
+    /* prevent click confusion outside zone */
+}
+
+.fz-out .matrix-cell-inner {
+    opacity: 0.18;
+    filter: grayscale(0.85) brightness(0.7);
+    transition: opacity .2s;
+}
+
+.fz-out:hover .matrix-cell-inner {
+    opacity: 0.28;
+    /* slight reveal on hover */
+}
+
+/* Tag label cells outside zone */
+.fz-tag-out {
+    opacity: 0.3;
+}
+
+/* Tag label cells inside zone */
+.fz-tag-in {
+    opacity: 1;
+}
+
+/* Column header of the last zone column gets a right-side tint underline */
+.fz-col-last {
+    border-right: 3px solid var(--zone-color, transparent) !important;
+    position: relative;
+}
+
+/* ==========================================
+   Responsive adjustments for the bar
+   ========================================== */
+@media (max-width: 768px) {
+    .focus-zone-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .fz-progress-track {
+        max-width: 100%;
+    }
+}

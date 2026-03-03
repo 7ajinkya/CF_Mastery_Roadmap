@@ -3168,6 +3168,72 @@ function showNotification(message, type = 'info') {
 // Mastery Matrix Feature
 // ==========================================
 
+// Focus Zone Definitions
+// Each zone defines how many tags (rows from top) and how many ratings (cols from left) to include.
+// Tags order: ['implementation','brute force','math','greedy','sorting','strings',
+//              'constructive','binary search','prefix sums','number theory','graphs','dp']
+// Ratings:    [800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000]
+const FOCUS_ZONES = {
+    pupil: {
+        label: 'Pupil',
+        color: '#03a9f4',
+        shadow: 'rgba(3,169,244,0.55)',
+        tagCount: 6,    // implementation, brute force, math, greedy, sorting, strings
+        ratingCount: 5  // 800–1200
+    },
+    specialist: {
+        label: 'Specialist',
+        color: '#aa00ff',
+        shadow: 'rgba(170,0,255,0.55)',
+        tagCount: 8,    // + constructive, binary search
+        ratingCount: 7  // 800–1400
+    },
+    expert: {
+        label: 'Expert',
+        color: '#ff8f00',
+        shadow: 'rgba(255,143,0,0.55)',
+        tagCount: 10,   // + prefix sums, number theory
+        ratingCount: 9  // 800–1600
+    },
+    cm: {
+        label: 'Cand. Master',
+        color: '#ff3d00',
+        shadow: 'rgba(255,61,0,0.55)',
+        tagCount: 12,   // all tags
+        ratingCount: 12 // 800–1900
+    }
+};
+
+// Currently active focus zone key ('none' or a key of FOCUS_ZONES)
+let activeFocusZone = 'none';
+
+// Count solved/total within a focus zone
+function getFocusZoneStats(zoneKey) {
+    if (!zoneKey || zoneKey === 'none' || !FOCUS_ZONES[zoneKey]) return null;
+    const zone = FOCUS_ZONES[zoneKey];
+    const zoneTags = MATRIX_TAGS.slice(0, zone.tagCount);
+    const zoneRatings = MATRIX_RATINGS.slice(0, zone.ratingCount);
+    let totalCells = 0, completedCells = 0, totalProblems = 0, solvedProblems = 0;
+    for (const tag of zoneTags) {
+        for (const rating of zoneRatings) {
+            const data = getMatrixCellData(tag, rating);
+            if (data.total > 0) {
+                totalCells++;
+                totalProblems += data.total;
+                solvedProblems += data.solved;
+                if (data.solved >= data.goal) completedCells++;
+            }
+        }
+    }
+    return { totalCells, completedCells, totalProblems, solvedProblems };
+}
+
+// Apply or remove the focus zone — called by the dropdown
+function setFocusZone(value) {
+    activeFocusZone = value;
+    renderMasteryMatrix();
+}
+
 // Count solved problems for a given tag+rating bucket
 function getMatrixCellData(tag, rating) {
     const problems = (MATRIX_PROBLEMS[tag] && MATRIX_PROBLEMS[tag][rating]) || [];
@@ -3212,9 +3278,44 @@ function renderMasteryMatrix() {
     const table = document.getElementById('matrix-table');
     const statsRow = document.getElementById('matrix-stats-row');
     const detailPanel = document.getElementById('matrix-detail-panel');
+    const zoneStatsEl = document.getElementById('focus-zone-stats');
     if (!table) return;
 
-    // --- Stats ---
+    // --- Resolve active focus zone ---
+    const zone = (activeFocusZone && activeFocusZone !== 'none') ? FOCUS_ZONES[activeFocusZone] : null;
+    const zoneTagCount = zone ? zone.tagCount : 0;
+    const zoneRatingCount = zone ? zone.ratingCount : 0;
+
+    // Apply zone color as CSS variable on the table wrapper
+    const wrapper = table.closest('.matrix-table-wrapper');
+    if (wrapper) {
+        wrapper.style.setProperty('--zone-color', zone ? zone.color : 'transparent');
+        wrapper.style.setProperty('--zone-shadow', zone ? zone.shadow : 'transparent');
+    }
+
+    // --- Focus Zone Stats Bar ---
+    if (zoneStatsEl) {
+        if (zone) {
+            const zs = getFocusZoneStats(activeFocusZone);
+            const pct = zs.totalProblems > 0 ? Math.round((zs.solvedProblems / zs.totalProblems) * 100) : 0;
+            const barFill = Math.round((zs.completedCells / Math.max(zs.totalCells, 1)) * 100);
+            zoneStatsEl.style.display = 'flex';
+            zoneStatsEl.innerHTML = `
+                <span class="fz-stats-title" style="color:${zone.color}">🎯 ${zone.label} Zone</span>
+                <span class="fz-stats-pill">${zs.completedCells}<span style="opacity:.6">/${zs.totalCells}</span> cells mastered</span>
+                <span class="fz-stats-pill">${zs.solvedProblems}<span style="opacity:.6">/${zs.totalProblems}</span> problems</span>
+                <span class="fz-stats-pill fz-pct" style="color:${zone.color}">${pct}%</span>
+                <div class="fz-progress-track">
+                    <div class="fz-progress-fill" style="width:${barFill}%;background:${zone.color};box-shadow:0 0 8px ${zone.shadow}"></div>
+                </div>
+            `;
+        } else {
+            zoneStatsEl.style.display = 'none';
+            zoneStatsEl.innerHTML = '';
+        }
+    }
+
+    // --- Overall Stats ---
     const stats = getMatrixStats();
     if (statsRow) {
         const pct = stats.totalProblems > 0 ? Math.round((stats.totalSolved / stats.totalProblems) * 100) : 0;
@@ -3249,24 +3350,54 @@ function renderMasteryMatrix() {
     }
     html += '</tr>';
 
-    // Rating header row
+    // Rating header row — tint zone column headers
     html += '<tr class="matrix-rating-header"><th>Tag \ Rating</th>';
-    for (const rating of MATRIX_RATINGS) {
-        html += `<th>${rating}</th>`;
+    for (let ri = 0; ri < MATRIX_RATINGS.length; ri++) {
+        const rating = MATRIX_RATINGS[ri];
+        const inZoneCol = zone && ri < zoneRatingCount;
+        const isLastZoneCol = zone && ri === zoneRatingCount - 1;
+        const thStyle = inZoneCol ? `color:${zone.color};` : '';
+        const thClass = isLastZoneCol ? 'fz-col-last' : '';
+        html += `<th class="${thClass}" style="${thStyle}">${rating}</th>`;
     }
     html += '</tr></thead>';
 
     // Body rows (one per tag)
     html += '<tbody>';
-    for (const tag of MATRIX_TAGS) {
-        html += '<tr>';
-        html += `<td class="matrix-tag-cell">${MATRIX_TAG_LABELS[tag] || tag}</td>`;
-        for (const rating of MATRIX_RATINGS) {
+    for (let ti = 0; ti < MATRIX_TAGS.length; ti++) {
+        const tag = MATRIX_TAGS[ti];
+        const inZoneRow = zone && ti < zoneTagCount;
+        const isLastZoneRow = zone && ti === zoneTagCount - 1;
+
+        // Tag label cell
+        let tagStyle = '';
+        if (zone) {
+            if (inZoneRow) tagStyle += `border-left:3px solid ${zone.color};`;
+            if (isLastZoneRow) tagStyle += `border-bottom:3px solid ${zone.color};`;
+        }
+        const tagClass = `matrix-tag-cell${inZoneRow ? ' fz-tag-in' : (zone ? ' fz-tag-out' : '')}`;
+        html += `<tr><td class="${tagClass}" style="${tagStyle}">${MATRIX_TAG_LABELS[tag] || tag}</td>`;
+
+        for (let ri = 0; ri < MATRIX_RATINGS.length; ri++) {
+            const rating = MATRIX_RATINGS[ri];
             const data = getMatrixCellData(tag, rating);
             const heatClass = getHeatClass(data.solved, data.goal, data.total);
             const displayText = data.total > 0 ? `${data.solved}/${data.total}` : '—';
             const goalText = data.total > 0 ? `goal: ${data.goal}` : '';
-            html += `<td class="matrix-cell ${heatClass}" onclick="openMatrixCell('${tag}', ${rating})">
+
+            const inZone = zone && ti < zoneTagCount && ri < zoneRatingCount;
+            const isOutZone = zone && !inZone;
+            const isRightEdge = zone && ri === zoneRatingCount - 1 && ti < zoneTagCount;
+            const isBottomEdge = zone && ti === zoneTagCount - 1 && ri < zoneRatingCount;
+
+            let cellStyle = '';
+            if (isRightEdge) cellStyle += `border-right:3px solid ${zone.color};`;
+            if (isBottomEdge) cellStyle += `border-bottom:3px solid ${zone.color};`;
+            if (isRightEdge && isBottomEdge) cellStyle += `box-shadow:4px 4px 0 ${zone.color};`;
+
+            const fzClass = inZone ? 'fz-in' : (isOutZone ? 'fz-out' : '');
+
+            html += `<td class="matrix-cell ${heatClass} ${fzClass}" style="${cellStyle}" onclick="openMatrixCell('${tag}', ${rating})">
                 <div class="matrix-cell-inner">
                     <span class="cell-count">${displayText}</span>
                     <span class="cell-goal">${goalText}</span>
