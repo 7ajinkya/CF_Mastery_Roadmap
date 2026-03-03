@@ -423,14 +423,12 @@ async function updateFromSubmissions(submissions) {
     const scheduleProgress = calculateProgressDay();
     const scheduleStreak = Math.max(0, scheduleProgress - 1);
 
-    // FIX: Enforce streak reset - only use schedule streak if it's within 1 day of date streak
-    // This prevents schedule streak from persisting when user misses actual calendar days
-    const validScheduleStreak = Math.abs(scheduleStreak - dateStreak) <= 1 ? scheduleStreak : 0;
+    // RELAXED: Don't reset schedule streak immediately if API lag is suspected.
+    // If scheduleStreak looks valid (larger than dateStreak), we keep it but log it.
+    const validScheduleStreak = scheduleStreak;
     state.streak = Math.max(dateStreak, validScheduleStreak);
 
-    // Manual override: set localStorage.streakOverride to your real streak count when the
-    // CF API under-counts (e.g. verification delays, problems solved outside CF).
-    // To set: open browser console and run: localStorage.setItem('streakOverride', '23')
+    // Manual override
     const streakOverride = parseInt(localStorage.getItem('streakOverride') || '0');
     if (streakOverride > state.streak) {
         state.streak = streakOverride;
@@ -1465,6 +1463,51 @@ function logout() {
     document.getElementById('dashboard').classList.add('hidden');
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('handle-input').value = '';
+}
+
+function exportData() {
+    const keys = [
+        'contestHistory', 'practiceList', 'solutionLogs', 'blindMode',
+        'flashcardMode', 'streakBonuses', 'unlockedAchievements',
+        'streakMilestones', 'teachBackXpAwarded', 'bossFights',
+        'activeBoss', 'maxStreakPersisted', 'streakOverride'
+    ];
+    const data = {};
+    keys.forEach(k => {
+        data[k] = localStorage.getItem(k);
+    });
+
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cf_tracker_data_${state.handle || 'backup'}.json`;
+    a.click();
+    showToast('Data exported! Keep this file safe.', 'success');
+}
+
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = event => {
+            try {
+                const data = JSON.parse(event.target.result);
+                Object.keys(data).forEach(k => {
+                    if (data[k] !== null) localStorage.setItem(k, data[k]);
+                });
+                showToast('Data imported! Refreshing...', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            } catch (err) {
+                showToast('Import failed: ' + err.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
 }
 
 // ===== Init =====

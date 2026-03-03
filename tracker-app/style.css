@@ -236,9 +236,36 @@ body {
     transition: all 0.2s;
 }
 
-.refresh-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+.footer-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.export-btn,
+.import-btn {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.export-btn:hover {
+    border-color: var(--green);
+    color: var(--green);
+}
+
+.import-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
 }
 
 .logout-btn:hover {
