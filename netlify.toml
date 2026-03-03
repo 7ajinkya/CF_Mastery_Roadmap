@@ -7,3 +7,29 @@
   to = "/tracker-app/index.html"
   status = 301
   force = true
+
+# -------------------------------------------------------
+# FIX: Netlify has no default MIME type for .md files.
+# Without these headers, the CDN returns HTTP 400 when
+# study_reader.js tries to fetch() any markdown file.
+# We explicitly declare them as plain text so Netlify
+# serves them correctly.
+# -------------------------------------------------------
+
+# Root-level .md files (CF_Roadmap_Overview.md, Phase*.md, etc.)
+[[headers]]
+  for = "/*.md"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+
+# Study guide files (Study_Guides/SG_01_*.md etc.)
+[[headers]]
+  for = "/Study_Guides/*.md"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+
+# Tag problem files (Tag_Problems/01_Math.md etc.)
+[[headers]]
+  for = "/Tag_Problems/*.md"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
