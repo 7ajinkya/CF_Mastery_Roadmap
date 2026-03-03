@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="contest_styles.css">
     <link rel="stylesheet" href="matrix.css">
+    <link rel="stylesheet" href="study_reader.css">
+    <link rel="stylesheet" href="insights.css">
 </head>
 
 <body>
@@ -624,14 +626,10 @@
         </div>
     </div>
 
-    <!-- Study Material Reader -->
+    <!-- Study Material & Features -->
+    <script src="study_content_bundle.js"></script>
     <script src="study_reader.js"></script>
-    <link rel="stylesheet" href="study_reader.css">
-
-    <!-- Insights Features -->
-    <link rel="stylesheet" href="insights.css">
     <script src="insights.js" defer></script>
-
     <script src="matrix_data.js"></script>
     <script src="schedule_data.js"></script>
     <script src="study_data.js"></script>
@@ -640,42 +638,43 @@
     <script>
         // Initialize study material reader when tab is shown
         document.addEventListener('DOMContentLoaded', function () {
-            // Set up tab switching observer
-            const observer = new MutationObserver(function (mutations) {
+            // Observer for tab changes
+            const dashboardObserver = new MutationObserver(function (mutations) {
                 mutations.forEach(function (mutation) {
                     if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                         const tab = document.getElementById('tab-study-material');
                         if (tab && tab.classList.contains('active')) {
-                            initializeStudyMaterial();
+                            // Ensure initializeStudyMaterial exists
+                            if (typeof initializeStudyMaterial === 'function') {
+                                initializeStudyMaterial();
+                            }
                         }
                     }
                 });
             });
 
-            const tab = document.getElementById('tab-study-material');
-            if (tab) {
-                observer.observe(tab, { attributes: true });
+            const studyTab = document.getElementById('tab-study-material');
+            if (studyTab) {
+                dashboardObserver.observe(studyTab, { attributes: true });
             }
         });
 
         function startTrackingWrapper() {
             try {
                 if (typeof startTracking !== 'function') {
-                    const msg = 'Application failed to load properly. startTracking function not found. Check browser console for errors.';
+                    const msg = 'Application failed to load properly. startTracking function not found.';
                     alert(msg);
                     console.error(msg);
                     return;
                 }
-                // Call the async function - errors will be caught inside startTracking()
                 startTracking().catch(e => {
                     console.error('startTracking error:', e);
                     const errorMsg = (e && e.message) ? e.message : String(e);
-                    document.getElementById('login-error').textContent = `Error: ${errorMsg}. Check your handle.`;
+                    document.getElementById('login-error').textContent = `Error: ${errorMsg}`;
                 });
             } catch (e) {
-                const errorMsg = (e && e.message) ? e.message : String(e);
                 console.error('startTrackingWrapper error:', e);
-                document.getElementById('login-error').textContent = `Error: ${errorMsg}`;
+                document.getElementById('login-error').textContent = `Error: ${e.message}`;
             }
         }
     </script>

@@ -215,40 +215,96 @@ class StudyMaterialReader {
 
     async loadFile(fileId) {
         const fileEntry = this.findFileById(fileId);
-        if (!fileEntry) {
-            console.error('File entry not found for:', fileId);
-            return null;
-        }
+        if (!fileEntry) return;
+
+        this.showLoading(true);
+        this.currentFile = fileEntry;
 
         try {
-            // Encode the URI to handle spaces and special characters
-            const url = encodeURI(`/${fileEntry.file}`);
-            console.log('Fetching file from:', url);
+            let markdown = '';
 
-            const response = await fetch(url);
-            if (!response.ok) {
-                console.error(`HTTP ${response.status} for file:`, fileEntry.file);
-                throw new Error(`HTTP ${response.status}`);
+            // Priority 1: Check the global bundle (prevents 404s in production)
+            if (window.STUDY_CONTENT_BUNDLE && window.STUDY_CONTENT_BUNDLE[fileEntry.file]) {
+                console.log('Loading from bundle:', fileEntry.file);
+                markdown = window.STUDY_CONTENT_BUNDLE[fileEntry.file];
+            } else {
+                // Priority 2: Fetch from server (fallback for local dev or missing files)
+                console.log('Fetching from server:', fileEntry.file);
+                // Encode the URI to handle spaces and special characters
+                const url = encodeURI(`/${fileEntry.file}`);
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.error(`HTTP ${response.status} for file:`, fileEntry.file);
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                markdown = await response.text();
             }
 
-            const content = await response.text();
-            this.currentFile = {
-                id: fileId,
-                ...fileEntry,
-                content: content,
-                html: this.renderer.render(content),
-                lastAccessed: new Date()
-            };
+            this.renderMarkdown(markdown);
+            this.updateActiveFile(fileId);
+            this.saveLastRead(fileId);
 
-            // Add to history
-            this.addToHistory(fileId);
-
-            console.log('Successfully loaded file:', fileId);
-            return this.currentFile;
+            const contentArea = document.getElementById('reader-content');
+            if (contentArea) contentArea.scrollTop = 0;
         } catch (error) {
-            console.error('Failed to load file:', fileId, error);
-            return null;
+            console.error('Failed to load study material:', error);
+            const contentArea = document.getElementById('reader-content');
+            if (contentArea) {
+                contentArea.innerHTML = `
+                    <div class="reader-error">
+                        <h3>Failed to load file: ${error.message}</h3>
+                        <p>File path: ${fileEntry.file}</p>
+                        <p>Please ensure you've run the bundle script or that the file exists in the repository.</p>
+                    </div>
+                `;
+            }
+        } finally {
+            this.showLoading(false);
         }
+    }
+
+    showLoading(show) {
+        const contentArea = document.getElementById('reader-content');
+        if (!contentArea) return;
+        if (show) {
+            contentArea.innerHTML = `
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <span>Loading material...</span>
+                </div>
+            `;
+        }
+    }
+
+    renderMarkdown(markdown) {
+        const contentArea = document.getElementById('reader-content');
+        if (!contentArea) return;
+        const html = this.renderer.render(markdown);
+        contentArea.innerHTML = html;
+    }
+
+    updateActiveFile(fileId) {
+        document.querySelectorAll('.quick-file-link').forEach(link => {
+            const onclick = link.getAttribute('onclick');
+            if (onclick && onclick.includes(`'${fileId}'`)) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        const fileEntry = this.findFileById(fileId);
+        if (fileEntry) {
+            const titleEl = document.getElementById('reader-file-title');
+            const iconEl = document.getElementById('reader-icon');
+            if (titleEl) titleEl.textContent = fileEntry.title;
+            if (iconEl) iconEl.textContent = fileEntry.icon || '📚';
+        }
+    }
+
+    saveLastRead(fileId) {
+        localStorage.setItem('studyLastRead', fileId);
+        this.addToHistory(fileId);
     }
 
     findFileById(fileId) {
@@ -333,3 +389,254 @@ class StudyMaterialReader {
 // Export for global use
 window.STUDY_MATERIAL_CATALOG = STUDY_MATERIAL_CATALOG;
 window.StudyMaterialReader = StudyMaterialReader;
+
+// ==========================================
+// Global UI Functions
+// ==========================================
+
+let currentStudyView = 'browse';
+let studyReaderInstance = null;
+let currentStudyFileId = null;
+let studyMaterialInitialized = false;
+
+function initializeStudyMaterial() {
+    if (studyMaterialInitialized && studyReaderInstance) {
+        return;
+    }
+
+    try {
+        studyReaderInstance = new StudyMaterialReader();
+        studyReaderInstance.loadHistory();
+
+        renderCategoryGrid();
+        renderRecentFiles();
+        renderBookmarkedFiles();
+
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+
+        studyMaterialInitialized = true;
+        console.log('Study material system initialized');
+    } catch (e) {
+        console.error('Failed to initialize study material:', e);
+    }
+}
+
+function switchStudyView(view) {
+    document.querySelectorAll('.study-nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.querySelector(`[data-view="${view}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    document.querySelectorAll('.study-view').forEach(viewEl => {
+        viewEl.classList.remove('active');
+        viewEl.style.display = 'none';
+    });
+
+    const targetView = document.getElementById(`${view}-view`);
+    if (targetView) {
+        targetView.classList.add('active');
+        targetView.style.display = 'block';
+    }
+
+    currentStudyView = view;
+    if (view === 'recent') renderRecentFiles();
+    else if (view === 'bookmarks') renderBookmarkedFiles();
+}
+
+function renderCategoryGrid() {
+    const container = document.getElementById('category-grid');
+    if (!container) return;
+    container.innerHTML = '';
+
+    STUDY_MATERIAL_CATALOG.forEach(category => {
+        const card = document.createElement('div');
+        card.className = 'category-card';
+
+        let filesHtml = '';
+        category.files.forEach(file => {
+            filesHtml += `
+                <li>
+                    <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                        <span>${file.title}</span>
+                    </a>
+                    <span class="file-meta">${file.type}</span>
+                </li>
+            `;
+        });
+
+        card.innerHTML = `
+            <div class="category-header">
+                <h2>${category.icon} ${category.category}</h2>
+            </div>
+            <div class="category-content">
+                <ul>${filesHtml}</ul>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function renderRecentFiles() {
+    if (!studyReaderInstance) return;
+    const recentFiles = studyReaderInstance.getRecentFiles(10);
+    const container = document.getElementById('recent-files-list');
+    if (!container) return;
+
+    if (recentFiles.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🕒</div>
+                <h3 class="empty-title">No Recent Files</h3>
+                <p class="empty-message">Explore the library to see recently accessed materials.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '<ul>' + recentFiles.map(file => `
+        <li>
+            <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                <span>${file.title}</span>
+            </a>
+            <span class="file-meta">${file.type}</span>
+        </li>
+    `).join('') + '</ul>';
+    container.innerHTML = html;
+}
+
+function renderBookmarkedFiles() {
+    if (!studyReaderInstance) return;
+    const bookmarkedFiles = studyReaderInstance.getBookmarkedFiles();
+    const container = document.getElementById('bookmarked-files-list');
+    if (!container) return;
+
+    if (bookmarkedFiles.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⭐</div>
+                <h3 class="empty-title">No Bookmarks Yet</h3>
+                <p class="empty-message">Bookmark your favorite guides to see them here.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '<ul>' + bookmarkedFiles.map(file => `
+        <li>
+            <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                <span>${file.title}</span>
+            </a>
+            <span class="file-meta">${file.type}</span>
+        </li>
+    `).join('') + '</ul>';
+    container.innerHTML = html;
+}
+
+async function loadStudyFile(fileId) {
+    if (!studyReaderInstance) initializeStudyMaterial();
+
+    document.querySelectorAll('.study-view').forEach(view => {
+        view.classList.remove('active');
+        view.style.display = 'none';
+    });
+    const readerView = document.getElementById('reader-view');
+    if (readerView) {
+        readerView.classList.add('active');
+        readerView.style.display = 'block';
+    }
+
+    try {
+        await studyReaderInstance.loadFile(fileId);
+        currentStudyFileId = fileId;
+
+        const bookmarkBtn = document.getElementById('bookmark-btn');
+        if (bookmarkBtn) {
+            if (studyReaderInstance.bookmarks.has(fileId)) {
+                bookmarkBtn.classList.add('active');
+                bookmarkBtn.innerHTML = '<span>⭐</span> Bookmarked';
+            } else {
+                bookmarkBtn.classList.remove('active');
+                bookmarkBtn.innerHTML = '<span>⭐</span> Bookmark';
+            }
+        }
+    } catch (e) {
+        console.error('Error loading file:', fileId, e);
+    }
+}
+
+function closeReader() {
+    document.getElementById('reader-view').style.display = 'none';
+    switchStudyView(currentStudyView);
+    currentStudyFileId = null;
+}
+
+function toggleBookmark() {
+    if (!currentStudyFileId || !studyReaderInstance) return;
+    const isBookmarked = studyReaderInstance.toggleBookmark(currentStudyFileId);
+    const bookmarkBtn = document.getElementById('bookmark-btn');
+    if (bookmarkBtn) {
+        bookmarkBtn.classList.toggle('active', isBookmarked);
+        bookmarkBtn.innerHTML = isBookmarked ? '<span>⭐</span> Bookmarked' : '<span>⭐</span> Bookmark';
+    }
+    if (typeof showToast === 'function') {
+        showToast(isBookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks', 'info');
+    }
+    if (currentStudyView === 'bookmarks') renderBookmarkedFiles();
+}
+
+function performSearch() {
+    if (!studyReaderInstance) return;
+    const query = document.getElementById('search-input').value.trim();
+    if (!query) return;
+
+    const results = studyReaderInstance.search(query);
+    const container = document.getElementById('search-results');
+    const listContainer = document.getElementById('search-results-list');
+
+    if (!container || !listContainer) return;
+
+    if (results.length === 0) {
+        listContainer.innerHTML = '<div class="empty-state">No results found.</div>';
+    } else {
+        listContainer.innerHTML = '<ul>' + results.map(file => `
+            <li>
+                <a href="#" class="quick-file-link" onclick="loadStudyFile('${file.id}')">
+                    <span>${file.categoryIcon} ${file.title}</span>
+                </a>
+                <span class="file-meta">${file.category}</span>
+            </li>
+        `).join('') + '</ul>';
+    }
+    container.style.display = 'block';
+}
+
+function toggleStudyFullscreen() {
+    const reader = document.querySelector('.reader-container');
+    if (reader) {
+        reader.classList.toggle('study-fullscreen');
+        if (reader.classList.contains('study-fullscreen')) {
+            document.body.style.overflow = 'hidden';
+            const btn = document.getElementById('fullscreen-btn');
+            if (btn) btn.innerHTML = '<span>📴</span> Exit Fullscreen';
+        } else {
+            document.body.style.overflow = '';
+            const btn = document.getElementById('fullscreen-btn');
+            if (btn) btn.innerHTML = '<span>⛶</span> Fullscreen';
+        }
+    }
+}
+
+// Export functions to window
+window.initializeStudyMaterial = initializeStudyMaterial;
+window.switchStudyView = switchStudyView;
+window.loadStudyFile = loadStudyFile;
+window.closeReader = closeReader;
+window.toggleBookmark = toggleBookmark;
+window.performSearch = performSearch;
+window.toggleStudyFullscreen = toggleStudyFullscreen;
