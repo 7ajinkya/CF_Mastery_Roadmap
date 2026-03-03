@@ -221,9 +221,8 @@ class StudyMaterialReader {
         }
 
         try {
-            // Root-relative pathing works both local (via updated start_server.py) 
-            // and remote (via Netlify redirects).
-            const url = `/${fileEntry.file}`;
+            // Encode the URI to handle spaces and special characters
+            const url = encodeURI(`/${fileEntry.file}`);
             console.log('Fetching file from:', url);
 
             const response = await fetch(url);
