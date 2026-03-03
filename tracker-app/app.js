@@ -2677,8 +2677,8 @@ async function loadStudyFile(fileId) {
     }
 
     try {
-        // Fetch file content
-        const url = `/api/study/?file=${encodeURIComponent(fileEntry.file)}`;
+        // Fetch file content directly (static file — no backend API needed)
+        const url = encodeURI(`/${fileEntry.file}`);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
