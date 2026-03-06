@@ -544,6 +544,11 @@
                                         onclick="toggleBookmark()">
                                         <span>⭐</span> Bookmark
                                     </button>
+                                    <button class="reader-btn btn-mark-read" id="mark-read-btn"
+                                        onclick="toggleMarkAsRead()"
+                                        style="background:rgba(0,230,118,.12);color:#00e676;border-color:rgba(0,230,118,.25);">
+                                        <span>📖</span> Mark as Read
+                                    </button>
                                     <button class="reader-btn btn-back" onclick="closeReader()">
                                         <span>←</span> Back to Library
                                     </button>
@@ -612,6 +617,33 @@
                     </div>
 
                     <div id="matrix-detail-panel"></div>
+
+                    <!-- Theory Matrix Section -->
+                    <div class="theory-matrix-section" style="margin-top:32px">
+                        <h3 class="section-title">📚 Theory Matrix</h3>
+                        <p class="section-desc">Study topics mapped by difficulty. Click a cell to open the guide. Mark
+                            completed to track progress.</p>
+
+                        <div class="theory-stats-row" id="theory-stats-row"></div>
+
+                        <div class="matrix-legend" id="theory-legend">
+                            <span style="font-weight:600">Status:</span>
+                            <div class="matrix-legend-item">
+                                <div class="matrix-legend-swatch" style="background:rgba(255,255,255,.06)"></div> Not
+                                Started
+                            </div>
+                            <div class="matrix-legend-item">
+                                <div class="matrix-legend-swatch" style="background:rgba(0,230,118,.22)"></div> ✅
+                                Completed
+                            </div>
+                        </div>
+
+                        <div class="matrix-table-wrapper">
+                            <table class="matrix-table theory-table" id="theory-table">
+                                <!-- Rendered by JS -->
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -643,12 +675,12 @@
 
     <!-- Study Material & Features -->
     <script src="study_content_bundle.js"></script>
-    <script src="study_reader.js"></script>
+    <script src="study_reader.js?v=2"></script>
     <script src="insights.js" defer></script>
     <script src="matrix_data.js"></script>
     <script src="schedule_data.js"></script>
     <script src="study_data.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=2"></script>
 
     <script>
         // Initialize study material reader when tab is shown

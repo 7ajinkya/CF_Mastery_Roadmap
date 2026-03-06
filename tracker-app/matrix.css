@@ -450,6 +450,187 @@
 }
 
 /* ==========================================
+   Theory Matrix Styles
+   ========================================== */
+.theory-matrix-section {
+    padding: 0 4px;
+}
+
+.theory-matrix-section .section-title {
+    margin-bottom: 8px;
+}
+
+.theory-matrix-section .section-desc {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.theory-stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.theory-table {
+    min-width: 500px !important;
+}
+
+.theory-table th:first-child,
+.theory-table td:first-child {
+    width: 180px;
+    min-width: 180px;
+}
+
+/* Theory column headers */
+.theory-level-header th {
+    padding: 10px 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    border-bottom: 2px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.theory-level-header th:first-child {
+    text-align: left;
+    padding-left: 12px;
+    background: var(--bg-card);
+    position: sticky;
+    left: 0;
+    z-index: 3;
+}
+
+/* Theory topic cell (sticky first column) */
+.theory-topic-cell {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg-card);
+    padding: 10px 10px !important;
+    font-weight: 600;
+    font-size: 12px;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+
+/* Theory data cells */
+.theory-cell {
+    padding: 6px 4px !important;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all .15s;
+    position: relative;
+}
+
+.theory-cell-empty {
+    cursor: default;
+}
+
+.theory-cell-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    padding: 8px 4px;
+    min-height: 52px;
+    transition: background .2s, box-shadow .2s;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, .04);
+    color: var(--text-secondary);
+}
+
+.theory-cell-inner .theory-title {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.theory-cell-inner .theory-desc {
+    font-size: 9px;
+    opacity: .6;
+    margin-top: 2px;
+    text-align: center;
+}
+
+.theory-cell-inner .theory-status {
+    font-size: 10px;
+    margin-top: 4px;
+    font-weight: 700;
+}
+
+/* Completed theory cell */
+.theory-done .theory-cell-inner {
+    background: rgba(0, 230, 118, .12);
+    color: #00e676;
+    box-shadow: inset 0 0 0 1px rgba(0, 230, 118, .3);
+}
+
+/* Empty theory cell */
+.theory-cell-empty .theory-cell-inner {
+    background: rgba(255, 255, 255, .02);
+    color: var(--text-muted);
+    opacity: .3;
+}
+
+/* Theory cell hover (non-empty) */
+.theory-cell:not(.theory-cell-empty):hover .theory-cell-inner {
+    outline: 2px solid rgba(0, 230, 118, .5);
+    outline-offset: -2px;
+    background: rgba(0, 230, 118, .08);
+}
+
+/* Calendar theory item */
+.cal-theory-section {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, .12);
+}
+
+.cal-theory-section h5 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.cal-theory-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    background: rgba(3, 169, 244, .08);
+    border: 1px solid rgba(3, 169, 244, .15);
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.cal-theory-item:hover {
+    background: rgba(3, 169, 244, .14);
+}
+
+.cal-theory-item .cal-theory-title {
+    color: #4fc3f7;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.cal-theory-item .cal-theory-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+
+/* ==========================================
    Focus Zone Feature Styles
    ========================================== */
 

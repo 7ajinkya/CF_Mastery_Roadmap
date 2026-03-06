@@ -55,6 +55,26 @@ const STUDY_MATERIAL_CATALOG = [
         ]
     },
     {
+        category: '🎓 Foundation Lessons',
+        icon: '🎓',
+        files: [
+            { id: 'lesson0', title: 'Lesson 0: Python I/O Setup', file: 'Study_Guides/Lesson0_Python_IO_Setup.md', type: 'lesson', priority: 1 },
+            { id: 'lesson1', title: 'Lesson 1: Math for CP', file: 'Study_Guides/Lesson1_Math_for_CP.md', type: 'lesson', priority: 1 },
+            { id: 'lesson2', title: 'Lesson 2: Arrays & Strings', file: 'Study_Guides/Lesson2_Arrays_Strings.md', type: 'lesson', priority: 1 },
+            { id: 'lesson3', title: 'Lesson 3: Sorting & Greedy', file: 'Study_Guides/Lesson3_Sorting_Greedy.md', type: 'lesson', priority: 2 },
+            { id: 'lesson4', title: 'Lesson 4: Prefix Sums & Two Pointers', file: 'Study_Guides/Lesson4_Prefix_Sums_Two_Pointers.md', type: 'lesson', priority: 2 },
+            { id: 'lesson5', title: 'Lesson 5: Number Theory Basics', file: 'Study_Guides/Lesson5_Number_Theory.md', type: 'lesson', priority: 2 },
+            { id: 'lesson6', title: 'Lesson 6: Binary Search', file: 'Study_Guides/Lesson6_Binary_Search.md', type: 'lesson', priority: 3 },
+            { id: 'lesson7', title: 'Lesson 7: Data Structures', file: 'Study_Guides/Lesson7_Data_Structures.md', type: 'lesson', priority: 3 },
+            { id: 'lesson8', title: 'Lesson 8: Graphs BFS/DFS', file: 'Study_Guides/Lesson8_Graphs_BFS_DFS.md', type: 'lesson', priority: 3 },
+            { id: 'lesson9', title: 'Lesson 9: Dynamic Programming', file: 'Study_Guides/Lesson9_Dynamic_Programming.md', type: 'lesson', priority: 4 },
+            { id: 'lesson10', title: 'Lesson 10: Combinatorics', file: 'Study_Guides/Lesson10_Combinatorics.md', type: 'lesson', priority: 4 },
+            { id: 'lesson11', title: 'Lesson 11: Trees', file: 'Study_Guides/Lesson11_Trees.md', type: 'lesson', priority: 4 },
+            { id: 'lesson12', title: 'Lesson 12: Recursion & Backtracking', file: 'Study_Guides/Lesson12_Recursion_Backtracking.md', type: 'lesson', priority: 5 },
+            { id: 'lesson13', title: 'Lesson 13: Shortest Paths', file: 'Study_Guides/Lesson13_Shortest_Paths.md', type: 'lesson', priority: 5 }
+        ]
+    },
+    {
         category: '🎮 Gamification',
         icon: '🎮',
         files: [
@@ -554,6 +574,8 @@ async function loadStudyFile(fileId) {
     try {
         await studyReaderInstance.loadFile(fileId);
         currentStudyFileId = fileId;
+        window.currentStudyFileId = fileId; // Expose for theory matrix integration
+        console.log(`[DEBUG loadStudyFile] Set currentStudyFileId to: ${fileId} | window.currentStudyFileId = ${window.currentStudyFileId}`);
 
         const bookmarkBtn = document.getElementById('bookmark-btn');
         if (bookmarkBtn) {
@@ -564,6 +586,11 @@ async function loadStudyFile(fileId) {
                 bookmarkBtn.classList.remove('active');
                 bookmarkBtn.innerHTML = '<span>⭐</span> Bookmark';
             }
+        }
+
+        // Update Mark as Read button for theory matrix sync
+        if (typeof updateMarkAsReadBtn === 'function') {
+            updateMarkAsReadBtn();
         }
     } catch (e) {
         console.error('Error loading file:', fileId, e);
@@ -632,6 +659,10 @@ function toggleStudyFullscreen() {
     }
 }
 
+function getCurrentStudyFileId() {
+    return currentStudyFileId;
+}
+
 // Export functions to window
 window.initializeStudyMaterial = initializeStudyMaterial;
 window.switchStudyView = switchStudyView;
@@ -640,3 +671,4 @@ window.closeReader = closeReader;
 window.toggleBookmark = toggleBookmark;
 window.performSearch = performSearch;
 window.toggleStudyFullscreen = toggleStudyFullscreen;
+window.getCurrentStudyFileId = getCurrentStudyFileId;

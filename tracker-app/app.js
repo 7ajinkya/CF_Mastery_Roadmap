@@ -1366,6 +1366,24 @@ function openDay(day, range, event) {
         }
     }
 
+    // === Theory Study suggestion ===
+    if (typeof getTheoryDailySuggestion === 'function') {
+        const theory = getTheoryDailySuggestion();
+        if (theory) {
+            const theoryHTML = `<div class="cal-theory-section">
+                <h5>📚 Daily Theory (recommended)</h5>
+                <div class="cal-theory-item" onclick="openTheoryGuide('${theory.file}')">
+                    <div>
+                        <span class="cal-theory-title">${theory.icon} ${theory.title}</span>
+                        <span class="cal-theory-desc">${theory.desc}</span>
+                    </div>
+                    <span class="cal-status pending">📖</span>
+                </div>
+            </div>`;
+            probList.insertAdjacentHTML('beforeend', theoryHTML);
+        }
+    }
+
     // Highlight active day
     document.querySelectorAll('.day-cell').forEach(c => c.classList.remove('active-day'));
     if (event && event.currentTarget) event.currentTarget.classList.add('active-day');
@@ -2721,6 +2739,8 @@ async function loadStudyFile(fileId) {
 
         // Update state
         studyReaderState.currentFileId = fileId;
+        window.currentStudyFileId = fileId;
+        if (typeof currentStudyFileId !== 'undefined') currentStudyFileId = fileId;
         addToStudyHistory(fileId);
         saveStudyHistory();
 
@@ -3412,6 +3432,9 @@ function renderMasteryMatrix() {
 
     // Clear detail panel on re-render
     if (detailPanel) detailPanel.innerHTML = '';
+
+    // Also render theory matrix below
+    renderTheoryMatrix();
 }
 
 // Open a specific cell's problem list
@@ -3516,4 +3539,241 @@ function getMatrixDailyProblems() {
     }
 
     return suggestions;
+}
+
+// ==========================================
+// Theory Matrix Feature
+// ==========================================
+
+// Load/save theory completion from localStorage
+function getTheoryCompleted() {
+    try {
+        const raw = localStorage.getItem('theory_completed');
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+}
+function saveTheoryCompleted(set) {
+    localStorage.setItem('theory_completed', JSON.stringify([...set]));
+}
+
+function toggleTheoryComplete(file) {
+    const completed = getTheoryCompleted();
+    if (completed.has(file)) completed.delete(file);
+    else completed.add(file);
+    saveTheoryCompleted(completed);
+    renderTheoryMatrix();
+}
+
+function getTheoryStats() {
+    const completed = getTheoryCompleted();
+    let total = 0, done = 0;
+    for (const topic of THEORY_TOPICS) {
+        for (const level of THEORY_LEVELS) {
+            if (topic.cells[level]) {
+                total++;
+                if (completed.has(topic.cells[level].file)) done++;
+            }
+        }
+    }
+    return { total, done };
+}
+
+function renderTheoryMatrix() {
+    const table = document.getElementById('theory-table');
+    const statsRow = document.getElementById('theory-stats-row');
+    if (!table) return;
+
+    const completed = getTheoryCompleted();
+    const stats = getTheoryStats();
+
+    // Stats
+    if (statsRow) {
+        const pct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+        statsRow.innerHTML = `
+            <div class="matrix-stat-card">
+                <div class="matrix-stat-value">${stats.done}/${stats.total}</div>
+                <div class="matrix-stat-label">Topics Completed</div>
+            </div>
+            <div class="matrix-stat-card">
+                <div class="matrix-stat-value">${pct}%</div>
+                <div class="matrix-stat-label">Theory Progress</div>
+            </div>
+        `;
+    }
+
+    // Table
+    let html = '<thead><tr class="theory-level-header"><th>Topic</th>';
+    for (const level of THEORY_LEVELS) {
+        const color = THEORY_LEVEL_COLORS[level] || '#fff';
+        html += `<th style="color:${color}">${THEORY_LEVEL_LABELS[level]}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const topic of THEORY_TOPICS) {
+        html += '<tr>';
+        html += `<td class="theory-topic-cell">${topic.icon} ${topic.topic}</td>`;
+        for (const level of THEORY_LEVELS) {
+            const cell = topic.cells[level];
+            if (!cell) {
+                html += `<td class="theory-cell theory-cell-empty"><div class="theory-cell-inner">—</div></td>`;
+                continue;
+            }
+            const isDone = completed.has(cell.file);
+            const cls = isDone ? 'theory-done' : '';
+            const statusIcon = isDone ? '✅' : '📖';
+            const statusText = isDone ? 'Completed' : 'Study';
+            html += `<td class="theory-cell ${cls}" onclick="openTheoryGuide('${cell.file}')">
+                <div class="theory-cell-inner">
+                    <span class="theory-title">${cell.title}</span>
+                    <span class="theory-desc">${cell.desc}</span>
+                    <span class="theory-status">${statusIcon} ${statusText}</span>
+                </div>
+            </td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+}
+
+// Open a theory guide — navigates to study material reader
+function openTheoryGuide(file) {
+    // Search STUDY_MATERIAL_CATALOG for a matching file entry
+    let catalogId = null;
+    if (typeof STUDY_MATERIAL_CATALOG !== 'undefined') {
+        for (const cat of STUDY_MATERIAL_CATALOG) {
+            const entry = cat.files.find(f => {
+                // Match full path or basename
+                if (f.file === file) return true;
+                if (f.file.endsWith('/' + file)) return true;
+                return false;
+            });
+            if (entry) { catalogId = entry.id; break; }
+        }
+    }
+
+    if (catalogId && typeof loadStudyFile === 'function') {
+        // Switch to study-material tab
+        const navItems = document.querySelectorAll('.nav-links li');
+        navItems.forEach(li => {
+            if (li.textContent.includes('Study Material')) {
+                showTab('study-material', li);
+            }
+        });
+        // Load the study file using its catalog ID
+        setTimeout(() => {
+            loadStudyFile(catalogId);
+            setTimeout(() => updateMarkAsReadBtn(file), 300);
+        }, 200);
+    } else {
+        // File not in catalog — show toast
+        if (typeof showToast === 'function') {
+            showToast(`📚 ${file} — This study material is not yet available in the reader.`);
+        }
+    }
+}
+
+// Toggle Mark as Read for the currently loaded study file
+function toggleMarkAsRead() {
+    const file = getCurrentStudyFileName();
+    if (!file) {
+        if (typeof showToast === 'function') showToast('No study file loaded');
+        return;
+    }
+
+    const completed = getTheoryCompleted();
+    const wasCompleted = completed.has(file);
+
+    if (wasCompleted) {
+        completed.delete(file);
+    } else {
+        completed.add(file);
+    }
+    saveTheoryCompleted(completed);
+
+    // Update button state
+    updateMarkAsReadBtn(file);
+
+    // Re-render theory matrix if visible
+    if (typeof renderTheoryMatrix === 'function') renderTheoryMatrix();
+
+    // Toast
+    if (typeof showToast === 'function') {
+        showToast(wasCompleted ? '📖 Unmarked — moved back to unread' : '✅ Marked as read! Theory Matrix updated.');
+    }
+}
+
+// Map the current study file ID back to its file name (for theory matrix matching)
+function getCurrentStudyFileName() {
+    // Prefer app.js's internal state tracker over study_reader.js's ghost tracker
+    let fileId = null;
+    if (typeof studyReaderState !== 'undefined' && studyReaderState.currentFileId) {
+        fileId = studyReaderState.currentFileId;
+    } else {
+        fileId = window.currentStudyFileId || null;
+    }
+
+    if (!fileId) return null;
+
+    // Convert to string for consistent matching
+    const idStr = String(fileId);
+
+    // Path 1: STUDY_GUIDES numeric IDs
+    if (typeof STUDY_GUIDES !== 'undefined') {
+        const guide = STUDY_GUIDES.find(g => String(g.id) === idStr);
+        if (guide) {
+            return guide.file.includes('/') ? guide.file.split('/').pop() : guide.file;
+        }
+    }
+
+    // Path 2: STUDY_MATERIAL_CATALOG string IDs (e.g., 'lesson0', 'guide1')
+    if (typeof STUDY_MATERIAL_CATALOG !== 'undefined') {
+        for (const cat of STUDY_MATERIAL_CATALOG) {
+            const entry = cat.files.find(f => String(f.id) === idStr || f.file.endsWith(idStr));
+            if (entry) {
+                return entry.file.includes('/') ? entry.file.split('/').pop() : entry.file;
+            }
+        }
+    }
+    return null;
+}
+
+// Update the Mark as Read button's visual state (checkbox style)
+function updateMarkAsReadBtn(file) {
+    const btn = document.getElementById('mark-read-btn');
+    if (!btn) return;
+
+    const targetFile = file || getCurrentStudyFileName();
+    if (!targetFile) return;
+
+    const completed = getTheoryCompleted();
+    const isDone = completed.has(targetFile);
+
+    if (isDone) {
+        btn.innerHTML = '<span>☑️</span> Mark as Unread';
+        btn.style.background = 'rgba(0,230,118,.25)';
+        btn.style.color = '#00e676';
+        btn.style.borderColor = 'rgba(0,230,118,.4)';
+        btn.title = 'Click to mark this guide as unread';
+    } else {
+        btn.innerHTML = '<span>☐</span> Mark as Read';
+        btn.style.background = 'rgba(255,255,255,.06)';
+        btn.style.color = 'var(--text-secondary)';
+        btn.style.borderColor = 'rgba(255,255,255,.15)';
+        btn.title = 'Click to mark this guide as read';
+    }
+}
+
+// Get a daily theory suggestion (first uncompleted beginner topic, then intermediate)
+function getTheoryDailySuggestion() {
+    const completed = getTheoryCompleted();
+    for (const level of THEORY_LEVELS) {
+        for (const topic of THEORY_TOPICS) {
+            const cell = topic.cells[level];
+            if (cell && !completed.has(cell.file)) {
+                return { ...cell, topic: topic.topic, icon: topic.icon, level };
+            }
+        }
+    }
+    return null;
 }
