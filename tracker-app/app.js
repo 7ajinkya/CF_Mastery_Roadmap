@@ -213,8 +213,166 @@ let state = {
     tagProficiency: {},
     bossFights: [],
     activeBoss: null,
-    lastReviewDate: null
+    lastReviewDate: null,
+    srQueue: []          // Spaced Repetition queue [{pid, name, rating, contestId, index, box, nextReview}]
 };
+
+// ===== Phase 1 Foundation Drills (extra reps — not in calendar, won't affect streak) =====
+// These are spaced-repetition reinforcement problems for Phase 1 topics.
+// They live only in the Practice List and are purely optional/supplementary.
+const PHASE1_EXTRA_DRILLS = [
+    // Week 1: Basic Math & Implementation
+    { id: "1/A", name: "Theatre Square", rating: 800, tag: "Math" },
+    { id: "96/A", name: "Football Kit", rating: 800, tag: "Math" },
+    { id: "116/A", name: "Tram", rating: 800, tag: "Math" },
+    { id: "469/A", name: "I Wanna Be the Guy", rating: 800, tag: "Implementation" },
+    { id: "1409/A", name: "Yet Another Two Integers Problem", rating: 800, tag: "Math" },
+    // Week 2: Greedy & Simple Logic
+    { id: "1374/A", name: "Required Remainder", rating: 800, tag: "Greedy" },
+    { id: "1352/A", name: "Sum of Round Numbers", rating: 800, tag: "Math" },
+    { id: "1360/A", name: "Minimal Square", rating: 800, tag: "Greedy" },
+    // Week 3: Sorting, Counting & Frequency
+    { id: "977/A", name: "Wrong Subtraction", rating: 800, tag: "Implementation" },
+    { id: "1538/A", name: "Stone Game", rating: 800, tag: "Greedy" },
+    { id: "1512/A", name: "Spy Detected!", rating: 900, tag: "Sorting" },
+    { id: "136/A", name: "Presents", rating: 900, tag: "Greedy" },
+    { id: "1383/A", name: "String Transformation", rating: 900, tag: "Strings" },
+    { id: "1426/A", name: "Floor Number", rating: 800, tag: "Math" },
+    // Week 4: Simulation & Patterns
+    { id: "550/A", name: "Two Substrings", rating: 1000, tag: "Strings" },
+    { id: "1527/A", name: "And Then There Were K", rating: 900, tag: "Math" },
+    { id: "992/A", name: "Nastya and an Array", rating: 900, tag: "Greedy" },
+];
+
+// ===== Spaced Repetition Engine (Leitner Box Model) =====
+// Intervals per box (days): Box1=1, Box2=3, Box3=7, Box4=14, Box5=30, Box6=60
+const SR_INTERVALS = [1, 3, 7, 14, 30, 60];
+
+function srLoad() {
+    try {
+        state.srQueue = JSON.parse(localStorage.getItem('srQueue') || '[]');
+    } catch (e) {
+        state.srQueue = [];
+    }
+}
+
+function srSave() {
+    localStorage.setItem('srQueue', JSON.stringify(state.srQueue));
+}
+
+// Enqueue a solved schedule problem into SR (idempotent — won't double-add)
+function srEnqueue(problem) {
+    const pid = normalizePid(problem);
+    if (!pid) return;
+    if (state.srQueue.some(e => e.pid === pid)) return; // already tracked
+
+    const entry = {
+        pid,
+        name: problem.name || pid,
+        rating: problem.rating || null,
+        contestId: problem.contestId || null,
+        index: problem.index || null,
+        id: problem.id || null,
+        box: 1,
+        nextReview: Date.now() + SR_INTERVALS[0] * 86400000  // 1 day from now
+    };
+    state.srQueue.push(entry);
+    srSave();
+}
+
+// Called when user clicks "✓ Remembered" — advance to next box
+function srMarkRemembered(pid) {
+    const entry = state.srQueue.find(e => e.pid === pid);
+    if (!entry) return;
+    if (entry.box < SR_INTERVALS.length) entry.box++;
+    const interval = SR_INTERVALS[entry.box - 1];
+    entry.nextReview = Date.now() + interval * 86400000;
+    srSave();
+    renderPracticeList();
+    showToast(`Great! Next review in ${interval} day${interval > 1 ? 's' : ''} 🧠`, 'success');
+}
+
+// Called when user clicks "✗ Forgot" — reset to box 1
+function srMarkForgotten(pid) {
+    const entry = state.srQueue.find(e => e.pid === pid);
+    if (!entry) return;
+    entry.box = 1;
+    entry.nextReview = Date.now() + SR_INTERVALS[0] * 86400000;
+    srSave();
+    renderPracticeList();
+    showToast(`No worries — scheduled for tomorrow for another look 🔁`, 'info');
+}
+
+// Remove from SR queue entirely
+function srRemove(pid) {
+    state.srQueue = state.srQueue.filter(e => e.pid !== pid);
+    srSave();
+    renderPracticeList();
+}
+
+// Returns entries due today (nextReview <= now), sorted by most overdue first
+function srGetDue() {
+    const now = Date.now();
+    return state.srQueue
+        .filter(e => e.nextReview <= now)
+        .sort((a, b) => a.nextReview - b.nextReview);
+}
+
+// Returns upcoming entries (not yet due), sorted by soonest first
+function srGetUpcoming() {
+    const now = Date.now();
+    return state.srQueue
+        .filter(e => e.nextReview > now)
+        .sort((a, b) => a.nextReview - b.nextReview);
+}
+
+function srFormatNext(ts) {
+    const days = Math.ceil((ts - Date.now()) / 86400000);
+    if (days <= 0) return 'Due now';
+    if (days === 1) return 'Tomorrow';
+    return `In ${days} days`;
+}
+
+function srBoxLabel(box) {
+    const labels = ['', '📦 Day 1', '📦 Day 3', '📦 Week 1', '📦 Week 2', '📦 Month 1', '📦 Month 2'];
+    return labels[box] || `📦 Box ${box}`;
+}
+
+// Auto-enqueue solved schedule problems into SR. Called after processSubmissions.
+function srAutoEnqueueSolvedScheduleProblems() {
+    const allScheduleProbs = [];
+    SCHEDULE_DATA.forEach(phase => {
+        phase.ranges.forEach(range => {
+            range.problems.forEach(p => allScheduleProbs.push(p));
+        });
+    });
+    let added = 0;
+    allScheduleProbs.forEach(p => {
+        const pid = normalizePid(p);
+        if (!pid) return;
+        if (!state.solvedProblems.has(pid)) return; // not solved yet
+        if (state.srQueue.some(e => e.pid === pid)) return; // already in queue
+        const solved = state.solvedProblems.get(pid);
+        // Build a full entry using CF data where available
+        const entry = {
+            pid,
+            name: solved.name || p.name || pid,
+            rating: solved.rating || p.rating || null,
+            contestId: solved.contestId || null,
+            index: solved.index || null,
+            id: p.id || null,
+            box: 1,
+            // Stagger reviews so they don't all land on day 1
+            nextReview: Date.now() + SR_INTERVALS[0] * 86400000
+        };
+        state.srQueue.push(entry);
+        added++;
+    });
+    if (added > 0) {
+        srSave();
+        console.log(`SR: auto-enrolled ${added} solved schedule problems`);
+    }
+}
 
 // ===== Toast Notification System =====
 function showToast(message, type = 'info', duration = 3000) {
@@ -558,7 +716,8 @@ async function startTracking() {
         state.solutionLogs = JSON.parse(localStorage.getItem('solutionLogs') || '{}');
         state.blindMode = localStorage.getItem('blindMode') === 'true';
         state.flashcardMode = localStorage.getItem('flashcardMode') === 'true';
-        // Streak bonuses already granted (persisted as array of day keys)
+        srLoad();
+        srAutoEnqueueSolvedScheduleProblems();
         try {
             const sb = JSON.parse(localStorage.getItem('streakBonuses') || '[]');
             state.streakBonuses = new Set(Array.isArray(sb) ? sb : []);
@@ -1130,19 +1289,37 @@ function showTab(tabId, element) {
     if (tabId === 'insights' && typeof renderInsightsTab === 'function') renderInsightsTab();
 }
 
-function renderPracticeList() {
-    const ratingFilter = document.getElementById('rating-filter').value;
-    const table = document.getElementById('practice-table');
+// ── Practice sub-tab state ──────────────────────────────────────────────────
+let activePracticeTab = 'upsolve'; // 'upsolve' | 'drills' | 'sr'
 
-    // Filter solved problems out of practice list (just in case)
+function switchPracticeTab(tab) {
+    activePracticeTab = tab;
+    document.querySelectorAll('.practice-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    renderPracticeList();
+}
+
+function renderPracticeList() {
+    const container = document.getElementById('practice-table');
+
+    // ── Prune solved problems from the upsolve list ──
     state.practiceList = state.practiceList.filter(p => {
         const pid = normalizePid(p);
         return !(pid && state.solvedProblems.has(pid));
     });
     localStorage.setItem('practiceList', JSON.stringify(state.practiceList));
 
-    let probs = [...state.practiceList];
+    // ── Render by active sub-tab ──
+    if (activePracticeTab === 'upsolve') renderUpsolveSection(container);
+    if (activePracticeTab === 'drills') renderDrillsSection(container);
+    if (activePracticeTab === 'sr') renderSRSection(container);
+}
 
+// ── Section 1: Upsolve (contest problems user missed) ───────────────────────
+function renderUpsolveSection(container) {
+    const ratingFilter = document.getElementById('rating-filter').value;
+    let probs = [...state.practiceList];
     if (ratingFilter !== 'all') {
         const r = parseInt(ratingFilter);
         if (r === 1300) probs = probs.filter(p => (p.rating || 0) >= 1300);
@@ -1150,29 +1327,150 @@ function renderPracticeList() {
     }
 
     if (probs.length === 0) {
-        table.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">No practice problems yet! Missed contest problems will appear here.</div>';
+        container.innerHTML = `<div class="practice-empty">
+            <div style="font-size:2.5rem;margin-bottom:12px">🏆</div>
+            <div style="font-weight:600;margin-bottom:6px">No missed problems yet!</div>
+            <div style="color:var(--text-muted);font-size:0.9rem">When you end a contest without solving all problems, they'll appear here for upsolving.</div>
+        </div>`;
         return;
     }
 
-    table.innerHTML = `<div class="problem-row problem-header"><span>ID</span><span>Name</span><span>Rating</span><span>Action</span></div>` +
-        probs.map(p => {
-            const color = getRatingColor(p.rating || 800);
-            const pid = normalizePid(p) || '';
-            const hasLog = pid && state.solutionLogs[pid];
-            const isBlind = state.blindMode;
-            const link = (p.contestId && p.index) ? `https://codeforces.com/problemset/problem/${p.contestId}/${p.index}` : (p.link || '#');
-            return `<div class="problem-row ${isBlind ? 'blind-active' : ''}">
-                <span>${pid}</span>
+    const isBlind = state.blindMode;
+    container.innerHTML = `
+        <div class="problem-row problem-header"><span>ID</span><span>Name</span><span>Rating</span><span>Actions</span></div>
+        ${probs.map(p => {
+        const color = getRatingColor(p.rating || 800);
+        const pid = normalizePid(p) || '';
+        const hasLog = pid && state.solutionLogs[pid];
+        const link = getProblemLink(p);
+        return `<div class="problem-row ${isBlind ? 'blind-active' : ''}">
+                <span style="color:var(--text-muted);font-size:0.85rem">${pid}</span>
                 <span><a href="${link}" target="_blank">${p.name}</a></span>
                 <span class="rating-cell" style="color:${color};font-weight:700">${p.rating || '?'}</span>
-                <span>
-                    <button onclick="openSolutionLog('${pid}')" title="Teach Back" style="background:transparent;border:none;cursor:pointer;margin-right:10px;">
-                        ${hasLog ? '📜' : '🎓'}
-                    </button>
-                    <button onclick="removeFromPractice('${pid}')" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted)">❌</button>
+                <span class="prob-action-cell">
+                    <button onclick="openSolutionLog('${pid}')" title="Teach Back" class="icon-btn">${hasLog ? '📜' : '🎓'}</button>
+                    <button onclick="removeFromPractice('${pid}')" title="Remove" class="icon-btn danger-btn">❌</button>
                 </span>
             </div>`;
-        }).join('');
+    }).join('')}`;
+}
+
+// ── Section 2: Foundation Drills (Phase 1 extras, optional, non-blocking) ───
+function renderDrillsSection(container) {
+    const ratingFilter = document.getElementById('rating-filter').value;
+    let drills = PHASE1_EXTRA_DRILLS.map(p => ({
+        ...p,
+        isSolved: state.solvedProblems.has(normalizePid(p))
+    }));
+
+    if (ratingFilter !== 'all') {
+        const r = parseInt(ratingFilter);
+        if (r === 1300) drills = drills.filter(p => (p.rating || 0) >= 1300);
+        else drills = drills.filter(p => (p.rating || 0) === r);
+    }
+
+    // Group by week
+    const weeks = [
+        { label: 'Week 1 · Basic Math & Implementation', tags: ['Math', 'Implementation'] },
+        { label: 'Week 2 · Greedy & Simple Logic', tags: ['Greedy'] },
+        { label: 'Week 3 · Sorting, Counting & Strings', tags: ['Sorting', 'Strings'] },
+        { label: 'Week 4 · Simulation & Patterns', tags: ['Simulation'] },
+    ];
+    const grouped = { 'Math': [], 'Implementation': [], 'Greedy': [], 'Sorting': [], 'Strings': [], 'Simulation': [] };
+    drills.forEach(p => { if (grouped[p.tag]) grouped[p.tag].push(p); });
+
+    const solvedCount = drills.filter(p => p.isSolved).length;
+    const totalCount = drills.length;
+
+    let html = `
+    <div class="drill-header">
+        <div class="drill-subtitle">📚 Phase 1 Reinforcement Problems</div>
+        <div class="drill-desc">These problems are <strong>completely optional</strong> and do not affect your calendar streak. They exist purely for myelin-strengthening repetition on the foundation topics you've already covered.</div>
+        <div class="drill-progress-bar-wrap">
+            <div class="drill-progress-bar-fill" style="width:${Math.round(solvedCount / totalCount * 100)}%"></div>
+        </div>
+        <div class="drill-progress-label">${solvedCount} / ${totalCount} solved</div>
+    </div>
+    <div class="problem-row problem-header"><span>ID</span><span>Name</span><span>Tag</span><span>Rating</span><span>Status</span></div>`;
+
+    drills.forEach(p => {
+        const pid = normalizePid(p);
+        const link = getProblemLink(p);
+        const color = getRatingColor(p.rating || 800);
+        html += `<div class="problem-row ${p.isSolved ? 'drill-solved-row' : ''}">
+            <span style="color:var(--text-muted);font-size:0.85rem">${pid}</span>
+            <span><a href="${link}" target="_blank">${p.name}</a></span>
+            <span class="drill-tag-pill">${p.tag}</span>
+            <span class="rating-cell" style="color:${color};font-weight:700">${p.rating}</span>
+            <span>${p.isSolved ? '<span class="drill-solved-badge">✅ Solved</span>' : '<span class="drill-pending-badge">⭕ To Do</span>'}</span>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+// ── Section 3: Spaced Repetition ─────────────────────────────────────────────
+function renderSRSection(container) {
+    const due = srGetDue();
+    const upcoming = srGetUpcoming();
+
+    if (state.srQueue.length === 0) {
+        container.innerHTML = `<div class="practice-empty">
+            <div style="font-size:2.5rem;margin-bottom:12px">🧠</div>
+            <div style="font-weight:600;margin-bottom:6px">No problems in your review queue yet</div>
+            <div style="color:var(--text-muted);font-size:0.9rem">As you solve problems from the schedule, they'll automatically be added here for periodic review. This uses a Leitner box system (1→3→7→14→30→60 days).</div>
+        </div>`;
+        return;
+    }
+
+    const renderSRRow = (e, isDue) => {
+        const link = e.contestId && e.index
+            ? `https://codeforces.com/problemset/problem/${e.contestId}/${e.index}`
+            : getProblemLink(e);
+        const color = getRatingColor(e.rating || 800);
+        return `<div class="problem-row sr-row ${isDue ? 'sr-due-row' : ''}">
+            <span style="color:var(--text-muted);font-size:0.85rem">${e.pid}</span>
+            <span><a href="${link}" target="_blank">${e.name}</a></span>
+            <span class="rating-cell" style="color:${color};font-weight:700">${e.rating || '?'}</span>
+            <span class="sr-box-badge">${srBoxLabel(e.box)}</span>
+            <span class="prob-action-cell">
+                ${isDue
+                ? `<button onclick="srMarkRemembered('${e.pid}')" title="I remembered it!" class="sr-btn sr-ok">✓ Got it</button>
+                       <button onclick="srMarkForgotten('${e.pid}')" title="I forgot" class="sr-btn sr-fail">✗ Forgot</button>`
+                : `<span class="sr-next-label">${srFormatNext(e.nextReview)}</span>`}
+                <button onclick="srRemove('${e.pid}')" title="Remove from queue" class="icon-btn danger-btn" style="margin-left:6px">🗑️</button>
+            </span>
+        </div>`;
+    };
+
+    let html = '';
+
+    // Due today section
+    html += `<div class="sr-section-header">
+        <span>🔔 Due Today</span>
+        <span class="sr-count-badge">${due.length}</span>
+    </div>`;
+    if (due.length === 0) {
+        html += `<div class="sr-empty-msg">🎉 You're all caught up for today! Check back tomorrow.</div>`;
+    } else {
+        html += `<div class="problem-row problem-header"><span>ID</span><span>Name</span><span>Rating</span><span>Box</span><span>Actions</span></div>`;
+        html += due.map(e => renderSRRow(e, true)).join('');
+    }
+
+    // Upcoming section (collapsible)
+    if (upcoming.length > 0) {
+        html += `
+        <details class="sr-upcoming-details">
+            <summary class="sr-section-header" style="cursor:pointer;list-style:none">
+                <span>📅 Upcoming Reviews</span>
+                <span class="sr-count-badge">${upcoming.length}</span>
+            </summary>
+            <div class="problem-row problem-header"><span>ID</span><span>Name</span><span>Rating</span><span>Box</span><span>Next Review</span></div>
+            ${upcoming.map(e => renderSRRow(e, false)).join('')}
+        </details>`;
+    }
+
+    container.innerHTML = html;
 }
 
 function toggleBlindMode() {
@@ -1434,6 +1732,8 @@ async function refreshData() {
         state.blindMode = localStorage.getItem('blindMode') === 'true';
         state.flashcardMode = localStorage.getItem('flashcardMode') === 'true';
         state.lastReviewDate = parseInt(localStorage.getItem('lastReviewDate') || '0');
+        srLoad();
+        srAutoEnqueueSolvedScheduleProblems();
 
         try {
             state.localContestRatings = JSON.parse(localStorage.getItem('localContestRatings') || '[]');
