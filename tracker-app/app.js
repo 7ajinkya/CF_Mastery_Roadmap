@@ -294,6 +294,23 @@ function normalizePid(item) {
     return null;
 }
 
+// Build a Codeforces problem URL from a schedule problem object.
+// Phase 1 problems have an explicit `link` field; Phase 2+ have link:"".
+// In that case, derive the URL from the `id` field (format: "contestId/Index").
+function getProblemLink(p) {
+    if (p.link && p.link.trim() !== '') return p.link.trim();
+    if (p.id) {
+        const s = p.id.toString().trim();
+        // Standard format: "279/B", "1486/C2", "2183/D1"
+        const m = s.match(/^(\d+)\/([A-Za-z0-9]+)$/);
+        if (m) return `https://codeforces.com/problemset/problem/${m[1]}/${m[2]}`;
+        // Fallback: "1234A" or "1234-A"
+        const m2 = s.match(/^(\d+)[-]?([A-Za-z][A-Za-z0-9]*)$/);
+        if (m2) return `https://codeforces.com/problemset/problem/${m2[1]}/${m2[2]}`;
+    }
+    return '#';
+}
+
 // ===== API Functions =====
 async function fetchJSON(url) {
     const res = await fetch(url);
@@ -1335,7 +1352,7 @@ function openDay(day, range, event) {
 
         return `
         <div class="cal-prob-item">
-            <a href="${p.link || '#'}" target="_blank">${p.name}</a>
+            <a href="${getProblemLink(p)}" target="_blank">${p.name}</a>
             <span class="cal-status ${isSolved ? 'done' : 'pending'}">
                 ${isSolved ? '✅ Solved' : '⭕ To Do'}
             </span>
@@ -1353,7 +1370,7 @@ function openDay(day, range, event) {
                 const mpSolved = mpid && state.solvedProblems.has(mpid);
                 return `<div class="cal-matrix-item">
                         <div>
-                            <a href="${mp.link}" target="_blank">${mp.name}</a>
+                            <a href="${getProblemLink(mp)}" target="_blank">${mp.name}</a>
                             <span class="cal-tag">${mp.tag} · ${mp.concept}</span>
                         </div>
                         <span class="cal-status ${mpSolved ? 'done' : 'pending'}">
@@ -3466,7 +3483,7 @@ function openMatrixCell(tag, rating) {
         const isSolved = state.solvedProblems.has(nid);
         return `<div class="matrix-prob-item">
             <div>
-                <a href="${p.link}" target="_blank">${p.name}</a>
+                <a href="${getProblemLink(p)}" target="_blank">${p.name}</a>
                 <span class="matrix-prob-concept">${p.concept}</span>
             </div>
             <span class="matrix-prob-status ${isSolved ? 'solved' : 'unsolved'}">
