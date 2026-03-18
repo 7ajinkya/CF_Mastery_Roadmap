@@ -4,27 +4,34 @@
 
 // Study Material Reader System
 const CF_API = 'https://codeforces.com/api';
+// XP thresholds redesigned (May 2025):
+// — Titles now follow the actual CF learning order (arrays/loops first, graphs/DP much later).
+// — Thresholds scaled ~5–8× so you stay at Foundation levels while you are still doing
+//   arrays, greedy, prefix sums and binary search.  Graph Walker / DP Initiate now require
+//   serious grinding to reach, which is when you should actually encounter those topics.
+// — Level 20 (EXPERT) sits at ~115 000 XP — achievable only after completing the full
+//   roadmap and consistently solving 1600–1900 rated problems.
 const LEVELS = [
-    { level: 1, title: 'Code Cadet', xp: 0 },
-    { level: 2, title: 'Bug Squasher', xp: 200 },
-    { level: 3, title: 'Loop Master', xp: 500 },
-    { level: 4, title: 'Array Knight', xp: 1000 },
-    { level: 5, title: 'Greedy Apprentice', xp: 1800 },
-    { level: 6, title: 'Binary Seeker', xp: 2800 },
-    { level: 7, title: 'Prefix Sage', xp: 4000 },
-    { level: 8, title: 'DP Initiate', xp: 5500 },
-    { level: 9, title: 'Graph Walker', xp: 7500 },
-    { level: 10, title: 'Bitmask Wizard', xp: 10000 },
-    { level: 11, title: 'Segment Sentinel', xp: 13000 },
-    { level: 12, title: 'Tree Whisperer', xp: 16500 },
-    { level: 13, title: 'Number Theorist', xp: 20500 },
-    { level: 14, title: 'Combo Breaker', xp: 25000 },
-    { level: 15, title: 'Algorithm Architect', xp: 30000 },
-    { level: 16, title: 'Contest Warrior', xp: 36000 },
-    { level: 17, title: 'Flow Master', xp: 43000 },
-    { level: 18, title: 'String Slayer', xp: 51000 },
-    { level: 19, title: 'Idea Machine', xp: 60000 },
-    { level: 20, title: 'EXPERT', xp: 70000 }
+    { level: 1,  title: 'Code Cadet',          xp: 0      },
+    { level: 2,  title: 'Bug Squasher',         xp: 800    },
+    { level: 3,  title: 'Loop Crafter',         xp: 2500   },
+    { level: 4,  title: 'Array Knight',         xp: 5500   },  // ~8 000 XP puts you here
+    { level: 5,  title: 'Greedy Apprentice',    xp: 10000  },
+    { level: 6,  title: 'Prefix Sage',          xp: 16500  },
+    { level: 7,  title: 'Binary Seeker',        xp: 25000  },
+    { level: 8,  title: 'Two Pointer Pro',      xp: 36000  },
+    { level: 9,  title: 'Number Theorist',      xp: 49000  },
+    { level: 10, title: 'DP Initiate',          xp: 60000  },
+    { level: 11, title: 'Graph Walker',         xp: 71000  },
+    { level: 12, title: 'Bitmask Wizard',       xp: 80000  },
+    { level: 13, title: 'Segment Sentinel',     xp: 88000  },
+    { level: 14, title: 'Tree Whisperer',       xp: 94500  },
+    { level: 15, title: 'String Slayer',        xp: 99500  },
+    { level: 16, title: 'Combo Breaker',        xp: 103000 },
+    { level: 17, title: 'Algorithm Architect',  xp: 106000 },
+    { level: 18, title: 'Contest Warrior',      xp: 109000 },
+    { level: 19, title: 'Idea Machine',         xp: 112000 },
+    { level: 20, title: 'EXPERT',               xp: 115000 }
 ];
 
 const XP_TABLE = {
@@ -707,8 +714,43 @@ async function startTracking() {
         state.submissions = submissions;
         state.ratingHistory = ratingHistory;
 
+        // ── MUST happen BEFORE updateFromSubmissions ──────────────────────────
+        // renderAchievements() is called from inside updateFromSubmissions → renderDashboard.
+        // If these Sets are still empty at that point every already-earned achievement
+        // looks "new" and fires a toast.  Pre-loading from localStorage prevents that.
+        try {
+            const ua = JSON.parse(localStorage.getItem('unlockedAchievements') || '[]');
+            state.unlockedAchievements = new Set(Array.isArray(ua) ? ua : []);
+        } catch (e) { state.unlockedAchievements = new Set(); }
+
+        try {
+            const sm = JSON.parse(localStorage.getItem('streakMilestones') || '[]');
+            state.streakMilestones = new Set(Array.isArray(sm) ? sm : []);
+        } catch (e) { state.streakMilestones = new Set(); }
+
+        try {
+            const tb = JSON.parse(localStorage.getItem('teachBackXpAwarded') || '[]');
+            state.teachBackXpAwarded = new Set(Array.isArray(tb) ? tb : []);
+        } catch (e) { state.teachBackXpAwarded = new Set(); }
+
+        try {
+            const sb = JSON.parse(localStorage.getItem('streakBonuses') || '[]');
+            state.streakBonuses = new Set(Array.isArray(sb) ? sb : []);
+        } catch (e) { state.streakBonuses = new Set(); }
+
+        // Suppress achievement toast pop-ups during the initial page load.
+        // Achievements already stored in localStorage will be silently recognised
+        // as unlocked.  Brand-new unlocks earned right now are saved to storage
+        // but shown only in the Achievements sidebar section, not as pop-ups.
+        // After the initial render completes, toast notifications resume normally
+        // for any new unlock triggered by a manual Refresh click.
+        state._isInitialLoad = true;
+
         // Centralized update so UI (streak/calendar) refreshes correctly
         await updateFromSubmissions(submissions);
+
+        // Initial load is done — future achievement unlocks may show toasts again.
+        state._isInitialLoad = false;
 
         // Load History & Practice
         state.contestHistory = JSON.parse(localStorage.getItem('contestHistory') || '[]');
@@ -718,36 +760,6 @@ async function startTracking() {
         state.flashcardMode = localStorage.getItem('flashcardMode') === 'true';
         srLoad();
         srAutoEnqueueSolvedScheduleProblems();
-        try {
-            const sb = JSON.parse(localStorage.getItem('streakBonuses') || '[]');
-            state.streakBonuses = new Set(Array.isArray(sb) ? sb : []);
-        } catch (e) {
-            state.streakBonuses = new Set();
-        }
-
-        // Load persisted achievement unlocks
-        try {
-            const ua = JSON.parse(localStorage.getItem('unlockedAchievements') || '[]');
-            state.unlockedAchievements = new Set(Array.isArray(ua) ? ua : []);
-        } catch (e) {
-            state.unlockedAchievements = new Set();
-        }
-
-        // Load streak milestones
-        try {
-            const sm = JSON.parse(localStorage.getItem('streakMilestones') || '[]');
-            state.streakMilestones = new Set(Array.isArray(sm) ? sm : []);
-        } catch (e) {
-            state.streakMilestones = new Set();
-        }
-
-        // Load teach-back XP awarded PIDs
-        try {
-            const tb = JSON.parse(localStorage.getItem('teachBackXpAwarded') || '[]');
-            state.teachBackXpAwarded = new Set(Array.isArray(tb) ? tb : []);
-        } catch (e) {
-            state.teachBackXpAwarded = new Set();
-        }
 
         // Load boss fights
         try {
@@ -1093,14 +1105,19 @@ function renderAchievements() {
         const wasUnlocked = state.unlockedAchievements.has(a.id);
         const isUnlocked = a.check(data) || wasUnlocked;
 
-        // If newly unlocked, persist and notify
+        // If newly unlocked, persist it — but only show a toast when this is NOT
+        // the initial page load.  On login all previously-earned achievements must
+        // be silently recognised; they are already visible in the Achievements
+        // sidebar section.  Toasts are reserved for achievements earned during an
+        // active session (e.g. after clicking Refresh while the dashboard is open).
         if (isUnlocked && !wasUnlocked) {
             state.unlockedAchievements.add(a.id);
             localStorage.setItem('unlockedAchievements', JSON.stringify([...state.unlockedAchievements]));
-            // Show toast notification for new unlock (delayed slightly to avoid spam on initial load)
-            setTimeout(() => {
-                showToast(`Achievement Unlocked: ${a.name}!`, 'success', 4000);
-            }, 100);
+            if (!state._isInitialLoad) {
+                setTimeout(() => {
+                    showToast(`🏆 Achievement Unlocked: ${a.name}!`, 'success', 4000);
+                }, 300);
+            }
         }
 
         return `<div class="achievement-card ${isUnlocked ? 'unlocked' : 'locked'}">
